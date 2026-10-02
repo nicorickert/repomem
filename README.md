@@ -159,6 +159,8 @@ repomem validate [--root <dir>]   # validate frontmatter, supersedes refs, and s
 
 ## Development
 
+Requires **Node.js 22+**.
+
 ```bash
 npm install
 npm run build      # tsc -> dist/
