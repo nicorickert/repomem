@@ -77,11 +77,13 @@ function toDoc(entry: MemoryEntry): IndexDoc {
 }
 
 /**
- * Scan the memory root and return a signature of path -> mtimeMs for every
- * entry file. Used to decide whether the index needs rebuilding.
+ * Scan the memory root and return a signature of path -> "mtimeMs:size" for
+ * every entry file. Including size catches a rewrite that lands on the same
+ * mtime tick (e.g. deprecate_memory immediately followed by a search), which
+ * a mtime-only signature can miss on coarse-resolution filesystems.
  */
-async function scanSignature(root: string): Promise<Map<string, number>> {
-  const sig = new Map<string, number>();
+async function scanSignature(root: string): Promise<Map<string, string>> {
+  const sig = new Map<string, string>();
   for (const type of ENTRY_TYPES) {
     const dir = path.join(root, TYPE_DIRS[type]);
     let files: string[];
@@ -95,7 +97,7 @@ async function scanSignature(root: string): Promise<Map<string, number>> {
       const full = path.join(dir, name);
       try {
         const st = await fs.stat(full);
-        sig.set(full, st.mtimeMs);
+        sig.set(full, `${st.mtimeMs}:${st.size}`);
       } catch {
         // File vanished between readdir and stat — ignore.
       }
@@ -104,7 +106,7 @@ async function scanSignature(root: string): Promise<Map<string, number>> {
   return sig;
 }
 
-function sameSignature(a: Map<string, number>, b: Map<string, number>): boolean {
+function sameSignature(a: Map<string, string>, b: Map<string, string>): boolean {
   if (a.size !== b.size) return false;
   for (const [k, v] of a) {
     if (b.get(k) !== v) return false;
@@ -119,7 +121,7 @@ function sameSignature(a: Map<string, number>, b: Map<string, number>): boolean 
 export class MemoryIndex {
   private readonly root: string;
   private mini: MiniSearch<IndexDoc> | undefined;
-  private signature = new Map<string, number>();
+  private signature = new Map<string, string>();
   private byId = new Map<string, MemoryEntry>();
 
   constructor(root: string) {
@@ -146,7 +148,7 @@ export class MemoryIndex {
   }
 
   /** Force a full rebuild from disk. */
-  async rebuild(sig?: Map<string, number>): Promise<void> {
+  async rebuild(sig?: Map<string, string>): Promise<void> {
     const entries = await loadEntries(this.root);
     const mini = new MiniSearch<IndexDoc>({
       fields: ["title", "body", "tags"],

@@ -106,3 +106,32 @@ describe("deprecated handling + live reindex", () => {
     expect(hits.some((h) => h.id === "adopt-feature-flags")).toBe(true);
   });
 });
+
+describe("signature includes size (rewrite detected on same mtime tick)", () => {
+  let tmp: string;
+  beforeEach(async () => {
+    tmp = await fs.mkdtemp(path.join(os.tmpdir(), "repomem-sig-"));
+    await fs.mkdir(path.join(tmp, "decisions"), { recursive: true });
+  });
+  afterEach(async () => {
+    await fs.rm(tmp, { recursive: true, force: true });
+  });
+
+  it("reflects a status change even when searched immediately after", async () => {
+    const file = path.join(tmp, "decisions", "x.md");
+    await fs.writeFile(
+      file,
+      "---\ntype: decision\ntitle: X\nstatus: accepted\ndate: 2026-01-01\n---\nalpha beta\n",
+    );
+    const index = new MemoryIndex(tmp);
+    expect((await index.search({ query: "alpha" })).length).toBe(1);
+
+    // Rewrite with deprecated status (changes file size) and search at once.
+    await fs.writeFile(
+      file,
+      "---\ntype: decision\ntitle: X\nstatus: deprecated\ndate: 2026-01-01\ndeprecated_reason: obsolete\n---\nalpha beta\n",
+    );
+    const hits = await index.search({ query: "alpha" });
+    expect(hits.length).toBe(0); // deprecated now excluded
+  });
+});

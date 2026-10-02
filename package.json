@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "Your repo's memory, available to every AI tool your team uses. A local MCP server that turns a memory/ folder into searchable shared context.",
   "license": "MIT",
-  "author": "Nicolás Rickert",
+  "author": "Nicol\u00e1s Rickert",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "bin": {
     "repomem": "dist/cli.js"
@@ -21,7 +21,6 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "dev": "node --loader ts-node/esm src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -36,7 +35,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@types/node": "^20.14.0",
+    "@types/node": "^22.0.0",
     "@types/picomatch": "^3.0.1",
     "typescript": "^5.6.0",
     "vitest": "^4.1.11"
