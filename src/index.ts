@@ -8,7 +8,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { resolveMemoryRoot } from "./store.js";
 import { MemoryIndex } from "./search.js";
-import { registerReadTools, SERVER_INFO } from "./server.js";
+import { registerAllTools, SERVER_INFO } from "./server.js";
 
 function log(message: string): void {
   process.stderr.write(`[repomem] ${message}\n`);
@@ -27,7 +27,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 
   const index = new MemoryIndex(root);
   const server = new McpServer(SERVER_INFO);
-  registerReadTools(server, index);
+  registerAllTools(server, root, index);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
