@@ -64,6 +64,9 @@ export const isoDate = z
  *
  * Defaults mirror the product rules: status defaults to `draft`, and the
  * list fields default to empty so a minimal entry only needs type/title/date.
+ *
+ * `deprecated_reason` / `superseded_by` are set by `deprecate_memory` and are
+ * only meaningful when `status` is `deprecated`.
  */
 export const frontmatterSchema = z
   .object({
@@ -76,6 +79,8 @@ export const frontmatterSchema = z
     related_paths: z.array(z.string().min(1)).default([]),
     supersedes: z.string().min(1).optional(),
     last_verified: isoDate.optional(),
+    deprecated_reason: z.string().min(1).optional(),
+    superseded_by: z.string().min(1).optional(),
   })
   .strict();
 
