@@ -108,7 +108,7 @@ The memory root is resolved in this order:
 
 1. `--root <dir>` flag
 2. `MEMORY_ROOT` environment variable
-3. `<git root>/memory`
+3. `<git root>/.repomem/memory`
 
 The server re-checks file modification times before each search, so a
 `git pull` is picked up without a restart.

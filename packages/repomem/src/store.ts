@@ -2,7 +2,7 @@
  * store.ts — read and write memory entries on disk.
  *
  * Responsibilities:
- *  - Resolve the memory root: `--root` flag > `MEMORY_ROOT` env > <git root>/memory.
+ *  - Resolve the memory root: `--root` flag > `MEMORY_ROOT` env > <git root>/.repomem/memory.
  *  - Load entries from `memory/<type>s/<slug>.md`, skipping (not crashing on)
  *    malformed files and reporting them to stderr.
  *  - Generate ASCII slugs from titles and write entries without ever
@@ -70,7 +70,7 @@ export function findGitRoot(start: string): string | undefined {
  * Resolve the memory root using the precedence:
  *   1. `--root` flag
  *   2. `MEMORY_ROOT` env var
- *   3. `<git root>/memory`
+ *   3. `<git root>/.repomem/memory`
  *
  * Throws if none can be resolved (no flag, no env, no git root found).
  */
@@ -83,7 +83,7 @@ export function resolveMemoryRoot(options: ResolveRootOptions = {}): string {
   if (envRoot && envRoot.trim() !== "") return path.resolve(envRoot);
 
   const gitRoot = findGitRoot(cwd);
-  if (gitRoot) return path.join(gitRoot, "memory");
+  if (gitRoot) return path.join(gitRoot, ".repomem", "memory");
 
   throw new Error(
     "Could not resolve a memory root: pass --root, set MEMORY_ROOT, or run inside a git repository.",

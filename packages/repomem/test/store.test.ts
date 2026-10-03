@@ -74,12 +74,12 @@ describe("findGitRoot / resolveMemoryRoot", () => {
     expect(root).toBe(path.join(tmp, "env"));
   });
 
-  it("falls back to <git root>/memory last", async () => {
+  it("falls back to <git root>/.repomem/memory last", async () => {
     await fs.mkdir(path.join(tmp, ".git"));
     const nested = path.join(tmp, "a", "b");
     await fs.mkdir(nested, { recursive: true });
     const root = resolveMemoryRoot({ env: {}, cwd: nested });
-    expect(root).toBe(path.join(tmp, "memory"));
+    expect(root).toBe(path.join(tmp, ".repomem", "memory"));
   });
 
   it("finds the git root by walking up", async () => {
