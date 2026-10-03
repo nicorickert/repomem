@@ -132,7 +132,7 @@ function usage(): void {
       "  repomem init [--root <dir>]       Scaffold the memory/ folder and templates",
       "  repomem validate [--root <dir>]   Validate entries (frontmatter, refs, secrets)",
       "",
-      "Root resolution: --root > MEMORY_ROOT env > <git root>/memory",
+      "Root resolution: --root > MEMORY_ROOT env > <git root>/.repomem/memory",
     ].join("\n"),
   );
 }
