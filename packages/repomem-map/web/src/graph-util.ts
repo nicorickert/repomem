@@ -72,3 +72,32 @@ export function nodeRadius(node: GraphModelNode, metric: SizeMetric): number {
   const value = metric === "degree" ? degreeOf(node) : node.imports + node.exports;
   return MIN_RADIUS + Math.sqrt(Math.max(0, value)) * 3;
 }
+
+/**
+ * The "section" a file belongs to: its directory truncated to `level`
+ * segments. Level 1 = top-level dir (e.g. "src"), level 2 = "src/api", etc.
+ * Capped at the file's own directory so it never includes the filename.
+ * Top-level files (no directory) group under "." so they still cluster.
+ */
+export function groupKey(path: string, level: number): string {
+  const lvl = Math.max(1, Math.floor(level));
+  const segments = path.split("/");
+  const dirs = segments.slice(0, -1); // drop the filename
+  if (dirs.length === 0) return ".";
+  return dirs.slice(0, lvl).join("/");
+}
+
+/**
+ * The degree value at the given percentile across `nodes` (0..1). Used to
+ * decide which nodes count as "hubs" (e.g. p90) so only their labels show.
+ * Returns 0 for an empty list.
+ */
+export function hubThreshold(nodes: GraphModelNode[], percentile: number): number {
+  if (nodes.length === 0) return 0;
+  const degrees = nodes.map(degreeOf).sort((a, b) => a - b);
+  const idx = Math.min(
+    degrees.length - 1,
+    Math.max(0, Math.floor(percentile * (degrees.length - 1))),
+  );
+  return degrees[idx] ?? 0;
+}

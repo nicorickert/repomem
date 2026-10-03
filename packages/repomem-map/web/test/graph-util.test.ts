@@ -4,6 +4,8 @@ import {
   neighborhood,
   nodeRadius,
   degreeOf,
+  groupKey,
+  hubThreshold,
   type GraphModel,
 } from "../src/graph-util.js";
 
@@ -71,5 +73,50 @@ describe("nodeRadius", () => {
   it("never returns a radius below the minimum", () => {
     const tiny = { id: "z", path: "z", fanIn: 0, fanOut: 0, imports: 0, exports: 0, inCycle: false };
     expect(nodeRadius(tiny, "degree")).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("groupKey", () => {
+  it("returns the directory up to the given level", () => {
+    expect(groupKey("src/api/db/client.ts", 1)).toBe("src");
+    expect(groupKey("src/api/db/client.ts", 2)).toBe("src/api");
+    expect(groupKey("src/api/db/client.ts", 3)).toBe("src/api/db");
+  });
+
+  it("caps the level at the file's own directory", () => {
+    // only two dir segments available; level 5 cannot go deeper
+    expect(groupKey("src/api/client.ts", 5)).toBe("src/api");
+  });
+
+  it("groups a top-level file under a sentinel root", () => {
+    expect(groupKey("index.ts", 1)).toBe(".");
+    expect(groupKey("index.ts", 2)).toBe(".");
+  });
+
+  it("treats level < 1 as level 1", () => {
+    expect(groupKey("src/api/client.ts", 0)).toBe("src");
+  });
+});
+
+describe("hubThreshold", () => {
+  it("returns a degree cutoff at the given percentile", () => {
+    const nodes = [1, 2, 3, 4, 10].map((d, i) => ({
+      id: `n${i}`,
+      path: `n${i}`,
+      fanIn: d,
+      fanOut: 0,
+      imports: 0,
+      exports: 0,
+      inCycle: false,
+    }));
+    // nearest-rank p90 of degrees [1,2,3,4,10] lands on 4, so n3 and n4 qualify
+    const t = hubThreshold(nodes, 0.9);
+    expect(t).toBe(4);
+    const hubs = nodes.filter((n) => degreeOf(n) >= t);
+    expect(hubs.map((h) => h.id).sort()).toEqual(["n3", "n4"]);
+  });
+
+  it("is safe for an empty node list", () => {
+    expect(hubThreshold([], 0.9)).toBe(0);
   });
 });
