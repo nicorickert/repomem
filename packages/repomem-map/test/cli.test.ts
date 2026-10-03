@@ -22,4 +22,17 @@ describe("parseArgs", () => {
     expect(parseArgs(["--help"]).command).toBe("help");
     expect(parseArgs(["-h"]).command).toBe("help");
   });
+
+  it("recognizes the graph command and reads --port", () => {
+    const { command, portFlag } = parseArgs(["graph", "--port", "1234"]);
+    expect(command).toBe("graph");
+    expect(portFlag).toBe(1234);
+  });
+
+  it("reads --root alongside graph", () => {
+    const { command, rootFlag, portFlag } = parseArgs(["graph", "--root", "/tmp/repo"]);
+    expect(command).toBe("graph");
+    expect(rootFlag).toBe("/tmp/repo");
+    expect(portFlag).toBeUndefined();
+  });
 });

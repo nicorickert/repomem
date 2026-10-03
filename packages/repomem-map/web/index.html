@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>repomem-map — dependency graph</title>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 13px/1.4 system-ui, sans-serif;
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        grid-template-rows: auto 1fr;
+        grid-template-areas: "toolbar toolbar" "graph side";
+        height: 100vh;
+      }
+      #toolbar {
+        grid-area: toolbar;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+        flex-wrap: wrap;
+      }
+      #toolbar label { display: flex; gap: 4px; align-items: center; }
+      #graph { grid-area: graph; overflow: hidden; }
+      #side {
+        grid-area: side;
+        border-left: 1px solid rgba(128, 128, 128, 0.3);
+        padding: 12px;
+        overflow: auto;
+      }
+      #side h2 { font-size: 14px; margin: 0 0 8px; word-break: break-all; }
+      #side .summary { opacity: 0.85; }
+      #side .lists { margin-top: 12px; }
+      #side ul { margin: 4px 0 12px; padding-left: 18px; }
+      #side li { cursor: pointer; }
+      #side li:hover { text-decoration: underline; }
+      .legend { font-size: 11px; opacity: 0.8; }
+      .legend .cycle { color: #e3342f; font-weight: 600; }
+      svg { width: 100%; height: 100%; display: block; }
+      .link { stroke: rgba(128, 128, 128, 0.4); stroke-width: 1px; }
+      .link.cycle { stroke: #e3342f; stroke-width: 1.5px; }
+      .node { cursor: pointer; stroke: #fff; stroke-width: 1px; }
+      .node.cycle { stroke: #e3342f; stroke-width: 2px; }
+      .node.dim, .link.dim { opacity: 0.12; }
+      .label { font-size: 9px; pointer-events: none; opacity: 0.7; }
+      input[type="text"] { padding: 2px 6px; }
+    </style>
+  </head>
+  <body>
+    <div id="toolbar">
+      <strong>repomem-map</strong>
+      <label>scope <input id="scope" type="text" placeholder="src/api" /></label>
+      <label>focus <input id="focus" type="text" placeholder="src/a.ts" /></label>
+      <label>depth <input id="depth" type="number" min="1" style="width: 56px" /></label>
+      <label>size by
+        <select id="metric">
+          <option value="degree">degree (fan-in+out)</option>
+          <option value="surface">imports+exports</option>
+        </select>
+      </label>
+      <button id="apply">Apply</button>
+      <span class="legend"><span class="cycle">red</span> = dependency cycle</span>
+    </div>
+    <div id="graph"></div>
+    <aside id="side"><em>Click a node to inspect it.</em></aside>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

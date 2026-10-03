@@ -12,6 +12,9 @@
   "workspaces": [
     "packages/*"
   ],
+  "//security-notes": {
+    "GHSA-vfj7-8cjw-p6xm": "braces@3.0.3 DoS via deeply-nested glob patterns, reached through fast-glob -> micromatch -> braces. No upstream fix published as of 2026-10-03 (3.0.3 is the latest and the flagged version). Not exploitable here: fast-glob is only invoked with static literal patterns ('**/*', '**/*.json') in repomem-map/src/scan.ts and mapindex.ts; no user-controlled glob pattern reaches braces. Re-audit when a patched braces/fast-glob is released."
+  },
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "clean": "npm run clean --workspaces --if-present",
@@ -21,5 +24,9 @@
     "test:core": "npm run test -w repomem",
     "typecheck:core": "npm run typecheck -w repomem",
     "validate:example": "npm run build -w repomem && node packages/repomem/dist/cli.js validate --root packages/repomem/memory-example"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "d3": "^7.9.0"
   }
 }
