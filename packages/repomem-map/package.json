@@ -1,0 +1,34 @@
+{
+  "name": "repomem-map",
+  "version": "0.0.0",
+  "description": "Structure map for repomem (planned). Answers what/where: what each file exports and what depends on it. Optional companion to repomem.",
+  "license": "MIT",
+  "author": "Nicolás Rickert",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "repomem-map": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "repomem": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
