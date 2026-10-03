@@ -21,6 +21,8 @@ import { pending } from "./pending.js";
 import { loadPrompt } from "./prompt.js";
 import { hashContent, writeSummary, readSummary, type SummaryRecord } from "./summary.js";
 import { isStale, type MapIndex } from "./mapindex.js";
+import type { DepGraph, ImpactDirection } from "./deps/graph.js";
+import { launchViewer } from "./web/launch.js";
 
 /** Default maximum files returned by request_summaries in one run. */
 export const DEFAULT_CAP = 20;
@@ -123,11 +125,17 @@ export function registerGenerationTools(server: McpServer, root: string): void {
   );
 }
 
-/** Register the read-only query tools backed by an in-memory `index`. */
+/** Register the read-only query tools backed by an in-memory `index`.
+ *
+ * The dependency tools (`get_dependencies`, `get_dependents`) and the edge
+ * fields of `get_module` are driven entirely by the import graph and work
+ * even when no summaries have been generated — summary generation is optional.
+ */
 export function registerQueryTools(
   server: McpServer,
   index: MapIndex,
   root: string,
+  graph?: DepGraph,
 ): void {
   server.registerTool(
     "find_code",
@@ -166,8 +174,12 @@ export function registerQueryTools(
     async ({ path: p }): Promise<CallToolResult> => {
       try {
         const record = index.get(p) ?? (await readSummary(root, p));
+        const dependencies = graph?.dependencies(p) ?? [];
+        const dependents = graph?.dependents(p) ?? [];
         if (!record) {
-          return jsonResult({ found: false, path: p });
+          // No summary, but the file may still be a graph node with edges.
+          const known = graph?.has(p) ?? false;
+          return jsonResult({ found: false, path: p, known, dependencies, dependents });
         }
         let stale = false;
         try {
@@ -185,9 +197,99 @@ export function registerQueryTools(
           model: record.model,
           generated_at: record.generated_at,
           stale,
+          dependencies,
+          dependents,
         });
       } catch (err) {
         return errorResult(`get_module failed: ${(err as Error).message}`);
+      }
+    },
+  );
+
+  // Dependency / blast-radius tools. Registered only when a graph is provided.
+  if (!graph) return;
+  const g = graph;
+
+  const impactTool = (
+    name: string,
+    direction: ImpactDirection,
+    title: string,
+    description: string,
+  ): void => {
+    server.registerTool(
+      name,
+      {
+        title,
+        description,
+        inputSchema: {
+          path: z.string().min(1).describe("Repository-relative file path"),
+          depth: z
+            .number()
+            .int()
+            .positive()
+            .optional()
+            .describe("Max hops from the file (1 = direct). Omit for the full transitive closure."),
+        },
+      },
+      async ({ path: p, depth }): Promise<CallToolResult> => {
+        try {
+          if (!g.has(p)) {
+            return jsonResult({ found: false, path: p });
+          }
+          const results = g.impact(p, { direction, depth });
+          return jsonResult({ found: true, path: p, count: results.length, results });
+        } catch (err) {
+          return errorResult(`${name} failed: ${(err as Error).message}`);
+        }
+      },
+    );
+  };
+
+  impactTool(
+    "get_dependents",
+    "dependents",
+    "Get dependents (blast radius)",
+    "List the files that depend on a given file — the blast radius of changing " +
+      "it — with each node's hop distance. Transitive by default; pass depth to " +
+      "limit hops (depth:1 = direct dependents). Derived from the import graph; " +
+      "works without any summaries.",
+  );
+
+  impactTool(
+    "get_dependencies",
+    "dependencies",
+    "Get dependencies",
+    "List the files a given file depends on (what it imports, transitively) with " +
+      "each node's hop distance. Transitive by default; pass depth to limit hops " +
+      "(depth:1 = direct dependencies). Derived from the import graph; works " +
+      "without any summaries.",
+  );
+
+  server.registerTool(
+    "open_graph",
+    {
+      title: "Open the dependency graph viewer",
+      description:
+        "Start a local web viewer for the dependency graph and return its URL. " +
+        "The viewer renders an interactive force-directed graph to inspect " +
+        "dependencies, blast radius, cycles and hubs at a glance. Derived from " +
+        "the import graph; works without any summaries (summaries, when present, " +
+        "are shown in the side panel).",
+      inputSchema: {
+        port: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe("Port to bind (0 picks a free port). Defaults to 7700."),
+      },
+    },
+    async ({ port }): Promise<CallToolResult> => {
+      try {
+        const handle = await launchViewer({ root, graph: g, index, port, openBrowser: true });
+        return jsonResult({ status: "started", url: handle.url, port: handle.port });
+      } catch (err) {
+        return errorResult(`open_graph failed: ${(err as Error).message}`);
       }
     },
   );
