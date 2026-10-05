@@ -20,6 +20,15 @@ const IMPLICIT_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"] as co
 /** Extensions a specifier may carry that we strip to find the TS source. */
 const REWRITABLE_EXTENSIONS = [".js", ".jsx", ".mjs", ".cjs"] as const;
 
+/** Python source extensions whose imports resolve by dot-path, not JS rules. */
+const PYTHON_EXTENSIONS = [".py", ".pyi"] as const;
+
+/** True when a repo-relative path is a Python source file. */
+function isPython(file: string): boolean {
+  const ext = path.extname(file).toLowerCase();
+  return (PYTHON_EXTENSIONS as readonly string[]).includes(ext);
+}
+
 interface AliasConfig {
   /** Absolute base directory for non-relative alias resolution. */
   baseDir: string;
@@ -32,11 +41,20 @@ function toPosix(p: string): string {
   return p.split(path.sep).join("/");
 }
 
+/** Markers whose containing directory is treated as a Python source root. */
+const PYTHON_PROJECT_MARKERS = ["pyproject.toml", "setup.py", "setup.cfg"] as const;
+
 export class Resolver {
   private constructor(
     private readonly root: string,
     private readonly files: ReadonlySet<string>,
     private readonly alias: AliasConfig | null,
+    /**
+     * Repo-relative POSIX directories to try as prefixes when an absolute
+     * Python dot-path does not resolve from the repo root. Always includes ""
+     * (the root itself) first, so root-relative imports keep working.
+     */
+    private readonly sourceRoots: readonly string[],
   ) {}
 
   /** Build a resolver for `root`, reading tsconfig aliases and the file set. */
@@ -45,7 +63,32 @@ export class Resolver {
       ? new Set([...files].map(toPosix))
       : await Resolver.discoverFiles(root);
     const alias = await Resolver.loadAlias(root);
-    return new Resolver(root, fileSet, alias);
+    const sourceRoots = Resolver.detectSourceRoots(fileSet);
+    return new Resolver(root, fileSet, alias, sourceRoots);
+  }
+
+  /**
+   * Directories that look like Python source roots: those containing a project
+   * marker (pyproject.toml / setup.py / setup.cfg). The repo root ("") is
+   * always first so root-relative dot-paths are tried before any nested root.
+   * Deeper roots come later; order only affects tie-breaking when a dot-path
+   * would match under more than one root.
+   */
+  private static detectSourceRoots(files: ReadonlySet<string>): string[] {
+    const roots = new Set<string>([""]);
+    for (const file of files) {
+      const base = file.includes("/") ? file.slice(0, file.lastIndexOf("/")) : "";
+      const name = file.slice(file.lastIndexOf("/") + 1);
+      if ((PYTHON_PROJECT_MARKERS as readonly string[]).includes(name)) {
+        roots.add(base);
+      }
+    }
+    // Shallower roots first (fewer segments), then lexicographic for stability.
+    return [...roots].sort((a, b) => {
+      const da = a === "" ? 0 : a.split("/").length;
+      const db = b === "" ? 0 : b.split("/").length;
+      return da - db || a.localeCompare(b);
+    });
   }
 
   private static async discoverFiles(root: string): Promise<Set<string>> {
@@ -88,6 +131,9 @@ export class Resolver {
    * repo-relative POSIX path, or null when it points outside the repo.
    */
   resolve(fromFile: string, specifier: string): string | null {
+    if (isPython(fromFile)) {
+      return this.resolvePython(fromFile, specifier);
+    }
     if (specifier.startsWith(".")) {
       const fromDir = path.dirname(path.join(this.root, fromFile));
       const abs = path.resolve(fromDir, specifier);
@@ -144,6 +190,62 @@ export class Resolver {
       for (const e of IMPLICIT_EXTENSIONS) candidates.push(path.join(abs, "index" + e));
     }
 
+    for (const cand of candidates) {
+      const rel = toPosix(path.relative(this.root, cand));
+      if (this.files.has(rel)) return rel;
+    }
+    return null;
+  }
+
+  /**
+   * Resolve a Python import specifier to a repo file.
+   *
+   * Specifiers are normalized by the Python parser: relative imports keep their
+   * leading dots ("." / ".mod" / "..pkg.sub") and absolute imports are plain
+   * dot-paths ("pkg.sub.mod"). Relative specifiers resolve against the importing
+   * file's package. Absolute specifiers resolve against each detected source
+   * root (the repo root plus any directory holding a Python project marker),
+   * so `src.*` imports work whether the package sits at the repo root or under
+   * a nested project dir like `backend/`. Both forms try a module file
+   * (`<path>.py`) and a package (`<path>/__init__.py`).
+   */
+  private resolvePython(fromFile: string, specifier: string): string | null {
+    if (specifier.startsWith(".")) {
+      // Count leading dots: 1 = current package, N = (N-1) levels up.
+      let dots = 0;
+      while (dots < specifier.length && specifier[dots] === ".") dots += 1;
+      const rest = specifier.slice(dots); // may be "" or "mod.sub"
+
+      const fromDir = path.dirname(path.join(this.root, fromFile));
+      // One dot stays in the current directory; each extra dot goes up one.
+      const up = dots - 1;
+      const baseDir = path.resolve(fromDir, ...Array(up).fill(".."));
+      const target = rest.length > 0
+        ? path.join(baseDir, ...rest.split("."))
+        : baseDir;
+      return this.matchPython(target);
+    }
+    // Absolute dot-path (e.g. "pkg.sub.mod"). Try it under each known source
+    // root: the repo root first (""), then any directory holding a Python
+    // project marker (e.g. "backend" when imports are written as "src.*" but
+    // the package lives in backend/src). External modules (stdlib, pip) match
+    // under no root and resolve to null.
+    const segments = specifier.split(".");
+    for (const srcRoot of this.sourceRoots) {
+      const base = srcRoot === "" ? this.root : path.join(this.root, srcRoot);
+      const hit = this.matchPython(path.join(base, ...segments));
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  /**
+   * Given an absolute base path (no extension), find the Python file it refers
+   * to: a module `<base>.py` or a package `<base>/__init__.py`. Returns a
+   * repo-relative POSIX path, or null when neither exists in the repo.
+   */
+  private matchPython(absBase: string): string | null {
+    const candidates = [absBase + ".py", path.join(absBase, "__init__.py")];
     for (const cand of candidates) {
       const rel = toPosix(path.relative(this.root, cand));
       if (this.files.has(rel)) return rel;
