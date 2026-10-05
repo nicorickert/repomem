@@ -13,6 +13,7 @@
 
 import path from "node:path";
 import ts from "typescript";
+import { parsePython } from "./python.js";
 
 /** What a parser extracts from one source file. */
 export interface ParseResult {
@@ -31,6 +32,8 @@ export interface LanguageParser {
 }
 
 const TS_JS_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"] as const;
+
+const PYTHON_EXTENSIONS = [".py", ".pyi"] as const;
 
 /** Collect raw specifiers and count exports from a TS/JS source string. */
 function parseTsJs(content: string, filePath: string): ParseResult {
@@ -120,7 +123,12 @@ const tsJsParser: LanguageParser = {
 };
 
 /** All registered parsers. New languages append here. */
-const PARSERS: readonly LanguageParser[] = [tsJsParser];
+const pythonParser: LanguageParser = {
+  extensions: PYTHON_EXTENSIONS,
+  parse: parsePython,
+};
+
+const PARSERS: readonly LanguageParser[] = [tsJsParser, pythonParser];
 
 /** Every extension handled by some registered parser. */
 export const SUPPORTED_EXTENSIONS: readonly string[] = PARSERS.flatMap(

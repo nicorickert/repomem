@@ -50,12 +50,23 @@ export interface SerializeOptions {
   focus?: string;
   /** Max hops from `focus` (both directions). Omit for the full closure. */
   depth?: number;
+  /**
+   * Drop nodes whose path is under any of these prefixes (segment match, same
+   * semantics as `scope`). Useful to hide noisy folders (tests, generated,
+   * vendored). Empty entries are ignored.
+   */
+  ignore?: string[];
 }
 
-/** True when `path` is within `scope` (prefix match on path segments). */
-function inScope(path: string, scope: string): boolean {
-  const s = scope.replace(/\/+$/, "");
+/** True when `path` is within `prefix` (prefix match on path segments). */
+function inScope(path: string, prefix: string): boolean {
+  const s = prefix.replace(/\/+$/, "");
   return path === s || path.startsWith(s + "/");
+}
+
+/** True when `path` is under any of the given prefixes (segment match). */
+function isIgnored(path: string, prefixes: string[]): boolean {
+  return prefixes.some((p) => inScope(path, p));
 }
 
 /**
@@ -86,6 +97,11 @@ export function serializeGraph(
 
   if (options.scope) {
     visible = new Set([...visible].filter((id) => inScope(id, options.scope!)));
+  }
+
+  const ignore = (options.ignore ?? []).map((p) => p.trim()).filter((p) => p.length > 0);
+  if (ignore.length > 0) {
+    visible = new Set([...visible].filter((id) => !isIgnored(id, ignore)));
   }
 
   const nodes: GraphNode[] = [...visible].map((id) => {

@@ -23,8 +23,8 @@ static imports and is independent of summaries — it works even if no summaries
 have been generated.
 
 Not yet (planned): symbol parsing, `repo_overview`, `--check`, merging with
-memory (`memory_for_path`), embeddings, Python (and other languages) in the
-dependency parser, and an optional LLM-derived **semantic** dependency layer
+memory (`memory_for_path`), embeddings, more languages in the dependency parser,
+and an optional LLM-derived **semantic** dependency layer
 (for relationships that are not static imports, e.g. dependency injection or
 cross-service calls). The current graph is intentionally parse-based and
 deterministic, which is what blast-radius measurement needs.
@@ -94,15 +94,25 @@ side panel.
 ## Dependency graph & web viewer
 
 The map builds an in-memory **file→file dependency graph** at startup by
-scanning every TS/JS file and parsing its imports with the TypeScript AST. It
-is never committed — like the search index, it is recomputed from the current
-code each time, so it is always fresh (the right basis for blast-radius).
+scanning every supported source file and parsing its imports. TypeScript and
+JavaScript (`.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`) are parsed with the
+TypeScript AST; Python (`.py`, `.pyi`) is parsed with a built-in, dependency-free
+scanner. The graph is never committed — like the search index, it is recomputed
+from the current code each time, so it is always fresh (the right basis for
+blast-radius).
 
-- **Nodes**: every scannable TS/JS file (independent of summaries).
-- **Edges**: resolved static imports. Relative imports (with implicit
-  extensions and `index.*`) and `tsconfig` path aliases (`paths`/`baseUrl`) are
-  resolved to repo files; Node builtins and npm packages are **not** edges yet.
-- **Metrics** per node: fan-in, fan-out, number of imports and exports.
+- **Nodes**: every scannable TS/JS or Python file (independent of summaries).
+- **Edges**: resolved static imports.
+  - *TS/JS*: relative imports (with implicit extensions and `index.*`) and
+    `tsconfig` path aliases (`paths`/`baseUrl`) are resolved to repo files.
+  - *Python*: relative imports (`from . import x`, `from ..pkg import y`) and
+    absolute dot-paths that point inside the repo (`pkg.sub.mod` →
+    `pkg/sub/mod.py` or `pkg/sub/mod/__init__.py`) are resolved.
+  - Node builtins, npm packages, and the Python standard library / third-party
+    packages are **not** edges.
+- **Metrics** per node: fan-in, fan-out, number of imports and exports. Python
+  exports are counted from `__all__` when declared, otherwise from public
+  top-level symbols (`def`/`class`/assignments not starting with `_`).
 - **Cycles**: dependency cycles are detected and highlighted.
 
 Open the viewer either from the CLI or via the `open_graph` tool:

@@ -61,6 +61,15 @@ describe("startWebServer", () => {
     expect(ids).toEqual(["src/api/a.ts", "src/api/b.ts"]);
   });
 
+  it("applies the ignore query parameter (comma-separated prefixes)", async () => {
+    const graph = await DepGraph.build(root);
+    handle = await startWebServer({ root, graph, port: 0 });
+    const res = await fetch(`${handle.url}/graph?ignore=src/core, src/api/a.ts`);
+    const json = await res.json();
+    const ids = json.nodes.map((n: { id: string }) => n.id).sort();
+    expect(ids).toEqual(["src/api/b.ts"]);
+  });
+
   it("returns 404 for an unknown path", async () => {
     const graph = await DepGraph.build(root);
     handle = await startWebServer({ root, graph, port: 0 });
