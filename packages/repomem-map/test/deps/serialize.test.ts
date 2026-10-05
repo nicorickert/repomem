@@ -96,6 +96,26 @@ describe("serializeGraph", () => {
     expect(ids).toEqual(["src/api/a.ts", "src/api/b.ts"]);
   });
 
+  it("drops nodes under ignore prefixes (segment match)", async () => {
+    const g = await DepGraph.build(root);
+    const json = serializeGraph(g, { ignore: ["src/core"] });
+    const ids = json.nodes.map((n) => n.id).sort();
+    expect(ids).toEqual(["src/api/a.ts", "src/api/b.ts"]);
+    // edges into the ignored folder are dropped
+    for (const e of json.edges) {
+      expect(e.target.startsWith("src/core")).toBe(false);
+    }
+    // cycles fully inside the ignored folder disappear
+    expect(json.cycles).toEqual([]);
+  });
+
+  it("ignores empty ignore entries and supports multiple prefixes", async () => {
+    const g = await DepGraph.build(root);
+    const json = serializeGraph(g, { ignore: ["src/api/a.ts", "", "  "] });
+    const ids = json.nodes.map((n) => n.id).sort();
+    expect(ids).toEqual(["src/api/b.ts", "src/core/c.ts", "src/core/x.ts", "src/core/y.ts"]);
+  });
+
   it("attaches summaries when a MapIndex is provided, and degrades without one", async () => {
     await writeSummary(root, "src/core/c.ts", rec("export const c = 1;\n", "core helper c"));
     const g = await DepGraph.build(root);

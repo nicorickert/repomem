@@ -53,11 +53,19 @@ function parseGraphQuery(url: URL): SerializeOptions {
   const scope = url.searchParams.get("scope");
   const focus = url.searchParams.get("focus");
   const depth = url.searchParams.get("depth");
+  const ignore = url.searchParams.get("ignore");
   if (scope) opts.scope = scope;
   if (focus) opts.focus = focus;
   if (depth) {
     const n = Number.parseInt(depth, 10);
     if (Number.isFinite(n) && n > 0) opts.depth = n;
+  }
+  if (ignore) {
+    const list = ignore
+      .split(",")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+    if (list.length > 0) opts.ignore = list;
   }
   return opts;
 }

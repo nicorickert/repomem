@@ -39,9 +39,11 @@ function currentQuery(): string {
   const scope = qs<HTMLInputElement>("scope").value.trim();
   const focus = qs<HTMLInputElement>("focus").value.trim();
   const depth = qs<HTMLInputElement>("depth").value.trim();
+  const ignore = qs<HTMLInputElement>("ignore").value.trim();
   if (scope) params.set("scope", scope);
   if (focus) params.set("focus", focus);
   if (depth) params.set("depth", depth);
+  if (ignore) params.set("ignore", ignore);
   const q = params.toString();
   return q ? `?${q}` : "";
 }
