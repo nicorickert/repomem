@@ -8,14 +8,20 @@ describe("parserFor", () => {
     }
   });
 
+  it("selects a parser for Python extensions", () => {
+    expect(parserFor("file.py")).not.toBeNull();
+    expect(parserFor("file.pyi")).not.toBeNull();
+  });
+
   it("returns null for unsupported extensions", () => {
-    expect(parserFor("file.py")).toBeNull();
     expect(parserFor("README.md")).toBeNull();
+    expect(parserFor("styles.css")).toBeNull();
   });
 
   it("exposes the supported extensions", () => {
     expect(SUPPORTED_EXTENSIONS).toContain(".ts");
     expect(SUPPORTED_EXTENSIONS).toContain(".tsx");
+    expect(SUPPORTED_EXTENSIONS).toContain(".py");
   });
 });
 
@@ -73,5 +79,19 @@ describe("parseSource (TS/JS)", () => {
     const { imports, exports } = parseSource("f.tsx", src);
     expect(imports).toContain("react");
     expect(exports).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("parseSource (Python)", () => {
+  it("routes .py files to the Python parser", () => {
+    const src = [
+      "from .mod import x",
+      "import pkg.sub",
+      "def public(): pass",
+      "__all__ = ['public']",
+    ].join("\n");
+    const { imports, exports } = parseSource("m.py", src);
+    expect(imports).toEqual([".mod", "pkg.sub"]);
+    expect(exports).toBe(1);
   });
 });
