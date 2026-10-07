@@ -131,6 +131,18 @@ The server re-checks file modification times before each search, so a
 }
 ```
 
+Instead of writing this by hand, run the one-step setup:
+
+```bash
+repomem setup --agent kiro        # from your repository root
+```
+
+It installs a `repomem-memory` skill, an `agentSpawn` validate hook, a shared
+`.kiro/agents/repomem.json` agent config, and merges the server into
+`.kiro/settings/mcp.json`. The command is idempotent and never overwrites your
+existing entries (pass `--force` to replace repomem's own entry). Only `kiro` is
+supported today.
+
 ### Claude Code — `.mcp.json`
 
 ```json
@@ -153,9 +165,13 @@ runs in. To point at a specific folder, add `"--root", "/path/to/memory"` to
 ```bash
 repomem init [--root <dir>]       # scaffold memory/ with templates and a README
 repomem validate [--root <dir>]   # validate frontmatter, supersedes refs, and scan for secrets
+repomem setup --agent kiro        # install skills, hooks and MCP config for an agent
 ```
 
 `validate` returns a non-zero exit code on any error, for use in pre-commit and CI.
+
+`setup` resolves the repository root via `--root` > `REPOMEM_REPO_ROOT` > the
+enclosing git root, and writes under `.kiro/`.
 
 ## Development
 
