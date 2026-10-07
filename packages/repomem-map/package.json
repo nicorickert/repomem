@@ -17,6 +17,7 @@
     "dist",
     "web-dist",
     "prompts",
+    "assets",
     "README.md",
     "LICENSE"
   ],
@@ -27,6 +28,7 @@
     "start": "node dist/cli.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "pretypecheck": "npm run build -w repomem",
     "typecheck": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json"
   },
   "dependencies": {

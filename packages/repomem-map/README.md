@@ -47,6 +47,20 @@ Add the server to your MCP client (e.g. Kiro) alongside `repomem`:
 `repomem-map` serves over stdio. Pass `--root <dir>` to point at the repository
 root (defaults to the current working directory).
 
+Instead of editing the config by hand, run the one-step setup from your
+repository root:
+
+```bash
+repomem-map setup --agent kiro
+```
+
+It installs a `repomem-map-structure` skill and merges the `repomem-map` server
+into both `.kiro/settings/mcp.json` and the shared `.kiro/agents/repomem.json`
+agent config. The merge is additive, so running it alongside `repomem setup`
+leaves both servers and both skills side by side. It is idempotent and never
+overwrites your existing entries (pass `--force` to replace its own entry).
+Only `kiro` is supported today.
+
 ### 2. Initialize the data (ask the agent)
 
 Summaries are generated in-agent. Just ask your agent, e.g.:

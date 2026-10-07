@@ -15,6 +15,8 @@ import { fileURLToPath } from "node:url";
 import { ENTRY_TYPES, TYPE_DIRS } from "./schema.js";
 import { resolveMemoryRoot } from "./store.js";
 import { validateRoot, formatReport } from "./validate.js";
+import { runSetup } from "./setup/index.js";
+import { repomemSpec } from "./setup/spec.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 // Templates ship alongside dist/ at the package root: dist/cli.js -> ../templates
@@ -31,6 +33,10 @@ function parseFlag(argv: string[], name: string): string | undefined {
   const i = argv.indexOf(name);
   if (i !== -1 && i + 1 < argv.length) return argv[i + 1];
   return undefined;
+}
+
+function hasFlag(argv: string[], name: string): boolean {
+  return argv.includes(name);
 }
 
 const MEMORY_README = `# Memory
@@ -131,8 +137,10 @@ function usage(): void {
       "Usage:",
       "  repomem init [--root <dir>]       Scaffold the memory/ folder and templates",
       "  repomem validate [--root <dir>]   Validate entries (frontmatter, refs, secrets)",
+      "  repomem setup --agent <name>      Install skills, hooks and MCP config for an agent",
       "",
       "Root resolution: --root > MEMORY_ROOT env > <git root>/.repomem/memory",
+      "setup root resolution: --root > REPOMEM_REPO_ROOT env > <git root>",
     ].join("\n"),
   );
 }
@@ -143,6 +151,20 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<numbe
   if (!command || command === "--help" || command === "-h" || command === "help") {
     usage();
     return command ? 0 : 1;
+  }
+
+  // `setup` resolves the repository root (not the memory root), so handle it
+  // before the memory-root resolution below.
+  if (command === "setup") {
+    return runSetup(
+      repomemSpec,
+      {
+        agent: parseFlag(argv, "--agent"),
+        rootFlag: parseFlag(argv, "--root"),
+        force: hasFlag(argv, "--force"),
+      },
+      { out, err },
+    );
   }
 
   let root: string;

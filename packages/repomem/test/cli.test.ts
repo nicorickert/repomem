@@ -86,3 +86,55 @@ describe("usage / unknown command", () => {
     expect(code).toBe(0);
   });
 });
+
+describe("repomem setup", () => {
+  it("installs skills, agent config and MCP settings for kiro", async () => {
+    const code = await run(["setup", "--agent", "kiro", "--root", tmp]);
+    expect(code).toBe(0);
+
+    expect(existsSync(path.join(tmp, ".kiro", "skills", "repomem-memory", "SKILL.md"))).toBe(true);
+    expect(existsSync(path.join(tmp, ".kiro", "agents", "repomem.json"))).toBe(true);
+    expect(existsSync(path.join(tmp, ".kiro", "settings", "mcp.json"))).toBe(true);
+
+    const mcp = JSON.parse(
+      await fs.readFile(path.join(tmp, ".kiro", "settings", "mcp.json"), "utf8"),
+    );
+    expect(mcp.mcpServers.repomem.command).toBe("npx");
+    expect(mcp.mcpServers.repomem.autoApprove).toContain("search_memory");
+  });
+
+  it("is idempotent on a second run", async () => {
+    await run(["setup", "--agent", "kiro", "--root", tmp]);
+    const code = await run(["setup", "--agent", "kiro", "--root", tmp]);
+    expect(code).toBe(0);
+
+    const agent = JSON.parse(
+      await fs.readFile(path.join(tmp, ".kiro", "agents", "repomem.json"), "utf8"),
+    );
+    const uris = agent.resources.filter(
+      (r: string) => r === "skill://.kiro/skills/repomem-memory/SKILL.md",
+    );
+    expect(uris).toHaveLength(1);
+  });
+
+  it("returns 1 for an unsupported agent", async () => {
+    const code = await run(["setup", "--agent", "emacs", "--root", tmp]);
+    expect(code).toBe(1);
+  });
+
+  it("returns 1 when --agent is missing", async () => {
+    const code = await run(["setup", "--root", tmp]);
+    expect(code).toBe(1);
+  });
+
+  it("ships a skill with name and description frontmatter", async () => {
+    await run(["setup", "--agent", "kiro", "--root", tmp]);
+    const skill = await fs.readFile(
+      path.join(tmp, ".kiro", "skills", "repomem-memory", "SKILL.md"),
+      "utf8",
+    );
+    expect(skill).toMatch(/^---\n/);
+    expect(skill).toMatch(/\nname: /);
+    expect(skill).toMatch(/\ndescription: /);
+  });
+});
