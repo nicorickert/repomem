@@ -50,6 +50,7 @@ Each entry is a markdown file with structured frontmatter, organized by type:
 - \`conventions/\` — rules the team follows
 - \`limitations/\` — known constraints and gotchas
 - \`learnings/\`   — lessons worth remembering
+- \`contexts/\`    — project and module-level context (what things are and why)
 
 ## How it works
 

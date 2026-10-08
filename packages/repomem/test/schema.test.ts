@@ -21,6 +21,21 @@ describe("frontmatterSchema", () => {
     expect(parsed.related_paths).toEqual([]);
   });
 
+  it("defaults scope to project when absent", () => {
+    const parsed = frontmatterSchema.parse(minimal);
+    expect(parsed.scope).toBe("project");
+  });
+
+  it("preserves a custom (module) scope", () => {
+    const parsed = frontmatterSchema.parse({ ...minimal, scope: "db" });
+    expect(parsed.scope).toBe("db");
+  });
+
+  it("rejects an empty scope", () => {
+    const r = frontmatterSchema.safeParse({ ...minimal, scope: "" });
+    expect(r.success).toBe(false);
+  });
+
   it("accepts a fully specified entry", () => {
     const parsed = frontmatterSchema.parse({
       ...minimal,
@@ -38,6 +53,11 @@ describe("frontmatterSchema", () => {
   it("rejects an unknown type", () => {
     const r = frontmatterSchema.safeParse({ ...minimal, type: "idea" });
     expect(r.success).toBe(false);
+  });
+
+  it("accepts the context type", () => {
+    const r = frontmatterSchema.safeParse({ ...minimal, type: "context" });
+    expect(r.success).toBe(true);
   });
 
   it("rejects an empty title", () => {

@@ -104,7 +104,13 @@ describe("loadEntries (fixture: memory-example)", () => {
   it("loads one entry per type from the example root", async () => {
     const entries = await loadEntries(EXAMPLE_ROOT);
     const types = entries.map((e) => e.frontmatter.type).sort();
-    expect(types).toEqual(["convention", "decision", "learning", "limitation"]);
+    expect(types).toEqual([
+      "context",
+      "convention",
+      "decision",
+      "learning",
+      "limitation",
+    ]);
   });
 
   it("derives id from the file slug", async () => {
@@ -204,5 +210,47 @@ describe("writeEntry — safe, non-overwriting writes", () => {
     expect(back?.frontmatter.tags).toEqual(["lint", "git"]);
     expect(back?.frontmatter.related_paths).toEqual(["**"]);
     expect(back?.body).toBe("Run the linter in a pre-commit hook.");
+  });
+
+  it("writes a context entry into the contexts/ folder and loads it back", async () => {
+    const r = await writeEntry(
+      tmp,
+      {
+        type: "context",
+        title: "Project brief",
+        date: "2026-03-04",
+        related_paths: ["**"],
+      },
+      "What this repository is and why it exists.",
+    );
+    expect(r.path).toContain(path.join("contexts", "project-brief.md"));
+
+    const loaded = await loadEntries(tmp);
+    const ctx = loaded.find((e) => e.id === "project-brief");
+    expect(ctx?.frontmatter.type).toBe("context");
+    expect(ctx?.frontmatter.scope).toBe("project");
+  });
+
+  it("defaults scope to project and round-trips a custom scope", async () => {
+    const def = await writeEntry(
+      tmp,
+      { type: "decision", title: "No explicit scope", date: "2026-03-03" },
+      "body",
+    );
+    const defBack = await readEntryFile(def.path, "decision");
+    expect(defBack?.frontmatter.scope).toBe("project");
+
+    const mod = await writeEntry(
+      tmp,
+      {
+        type: "decision",
+        title: "Scoped to db",
+        date: "2026-03-03",
+        scope: "db",
+      },
+      "body",
+    );
+    const modBack = await readEntryFile(mod.path, "decision");
+    expect(modBack?.frontmatter.scope).toBe("db");
   });
 });

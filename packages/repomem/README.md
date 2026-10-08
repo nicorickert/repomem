@@ -4,11 +4,11 @@
 
 `repomem` is a local [Model Context Protocol](https://modelcontextprotocol.io)
 (MCP) server that turns a `memory/` folder in your repository into searchable,
-shared context for AI assistants. Decisions, conventions, limitations and
-learnings live as reviewable markdown files with structured frontmatter,
-versioned with git and shared through normal pull requests. AI tools can search
-and read them, and propose new entries as drafts that a human approves in the
-same PR as the code change.
+shared context for AI assistants. Decisions, conventions, limitations,
+learnings and project context live as reviewable markdown files with structured
+frontmatter, versioned with git and shared through normal pull requests. AI
+tools can search and read them, and propose new entries as drafts that a human
+approves in the same PR as the code change.
 
 ## Why it exists
 
@@ -51,10 +51,11 @@ slug. Each file starts with YAML frontmatter:
 
 ```markdown
 ---
-type: decision          # decision | convention | limitation | learning
+type: decision          # decision | convention | limitation | learning | context
 title: Use PostgreSQL as the primary data store
 status: accepted        # draft | accepted | deprecated (default: draft)
 date: 2026-01-15        # ISO date
+scope: project          # project (default, repo-wide) or a module name (db, auth…)
 author: platform-team   # optional
 tags: [database, architecture]
 related_paths:          # globs this entry relates to
@@ -70,10 +71,11 @@ transactional guarantees across several tables.
 
 | Field           | Required | Notes                                             |
 |-----------------|----------|---------------------------------------------------|
-| `type`          | yes      | One of decision, convention, limitation, learning |
+| `type`          | yes      | One of decision, convention, limitation, learning, context |
 | `title`         | yes      | Human-readable title; the slug is derived from it |
 | `status`        | no       | Defaults to `draft`                               |
 | `date`          | yes      | ISO date (`YYYY-MM-DD`)                            |
+| `scope`         | no       | Free text; defaults to `project`. Use a module name (`db`, `auth`…) for module-specific entries. Complements `related_paths`. |
 | `author`        | no       | Freeform                                          |
 | `tags`          | no       | Defaults to `[]`                                  |
 | `related_paths` | no       | Globs; power `memory_for_path`. Defaults to `[]`  |
@@ -137,7 +139,9 @@ Instead of writing this by hand, run the one-step setup:
 repomem setup --agent kiro        # from your repository root
 ```
 
-It installs a `repomem-memory` skill, an `agentSpawn` validate hook, a shared
+It installs a `repomem-memory` skill (how to record and recall memory), a
+`repomem-distill` skill (how to distill a finished plan into durable entries as
+its final step), an `agentSpawn` validate hook, a shared
 `.kiro/agents/repomem.json` agent config, and merges the server into
 `.kiro/settings/mcp.json`. The command is idempotent and never overwrites your
 existing entries (pass `--force` to replace repomem's own entry). Only `kiro` is
