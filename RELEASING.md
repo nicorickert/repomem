@@ -8,27 +8,61 @@ The three packages are published to npm under the public `@repomem` scope:
 | `@repomem/memory` | `repomem`     | `@repomem/core` |
 | `@repomem/map`    | `repomem-map` | `@repomem/core` |
 
-Publishing is automated by [`.github/workflows/publish.yml`](.github/workflows/publish.yml),
+Publishing is **tokenless**: it uses npm [trusted publishing](https://docs.npmjs.com/trusted-publishers)
+(OIDC) from GitHub Actions, so there is **no `NPM_TOKEN` secret**. Releases are
+automated by [`.github/workflows/publish.yml`](.github/workflows/publish.yml),
 triggered by pushing a git tag that matches `v*` (or run manually via
 *Actions → Publish → Run workflow*). The workflow installs, typechecks, builds,
 tests, and then publishes **in dependency order** (`core` → `memory` → `map`)
-with `--access public --provenance`.
+with `--access public`. Provenance is attached automatically.
 
 ## One-time setup (maintainer)
 
+npm's trusted publishing has a chicken-and-egg limitation: **a package must
+already exist before you can configure a trusted publisher for it.** So the very
+first release is published manually; everything after that is tokenless CI.
+
+### 1. Account and org
+
 1. **npm org** — create the free `repomem` org (public packages are free):
    https://www.npmjs.com/org/create
-2. **Account** — npm account with a verified email and 2FA set to
-   *Authorization and Publishing*.
-3. **Automation token** — npm → *Access Tokens* → generate an **Automation**
-   token (it bypasses the interactive 2FA prompt that CI cannot answer).
-4. **GitHub secret** — add the token as a repository secret named exactly
-   `NPM_TOKEN`: repo → *Settings → Secrets and variables → Actions → Secrets →
-   New repository secret*.
+2. **Account** — npm account with a verified email and 2FA enabled.
 
-Provenance needs no extra secret: the workflow already requests
-`id-token: write`, and GitHub's OIDC + Sigstore sign the attestation. It only
-works for public packages published from CI, which is this setup.
+### 2. Bootstrap: publish `0.1.0` manually, once
+
+From a clean checkout of `main` at the release commit:
+
+```bash
+npm ci
+npm run build
+npm test
+
+npm login            # interactive, answers your 2FA prompt
+
+# dependency order: core -> memory -> map
+npm publish -w @repomem/core   --access public --provenance
+npm publish -w @repomem/memory --access public --provenance
+npm publish -w @repomem/map    --access public --provenance
+```
+
+Requires npm >= 11.5.1 locally for provenance from a non-CI environment
+(`npm install -g npm@latest`).
+
+### 3. Configure trusted publishing (now that the packages exist)
+
+For **each** of the three packages, on npmjs.com:
+
+> Package → *Settings* → *Trusted Publisher* → **GitHub Actions**, then set:
+> - Organization / user: `nicorickert`
+> - Repository: `repomem`
+> - Workflow filename: `publish.yml`
+
+After this, CI can publish without any token. There is no `NPM_TOKEN` secret to
+create; if one exists from an earlier attempt, delete it
+(repo → *Settings → Secrets and variables → Actions*).
+
+The workflow already requests `id-token: write` and upgrades npm to a version
+that supports trusted publishing.
 
 ## Cutting a release
 
@@ -72,14 +106,7 @@ works for public packages published from CI, which is this setup.
   npx repomem-map --help
   ```
   Both should resolve `@repomem/core` transitively from the registry.
-- **Pre-existing `0.1` tag on GitHub.** A `0.1` tag may already exist from
-  before the scope migration. It does not affect npm (nothing was ever
-  published). If you want `v0.1.0` to be the real release tag, you can delete
-  and recreate it — this is a **destructive git operation**, do it deliberately:
-  ```bash
-  # destructive: rewrites a remote tag
-  git tag -d 0.1
-  git push origin :refs/tags/0.1
-  git tag v0.1.0
-  git push origin v0.1.0
-  ```
+- **Subsequent releases are tokenless.** Once trusted publishing is configured
+  per package, pushing a `v*` tag runs the workflow with no secret. If the
+  workflow ever fails with a 403, re-check the trusted-publisher config
+  (repo name, workflow filename) on each package.
