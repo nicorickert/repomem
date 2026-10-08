@@ -1,6 +1,6 @@
 {
   "name": "@repomem/cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "One-command installer for repomem: interactively configure the memory and structure-map MCP servers for your AI tool.",
   "license": "MIT",
   "author": "Nicolás Rickert",

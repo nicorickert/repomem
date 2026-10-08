@@ -6,7 +6,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import path from "node:path";
+import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolveMemoryRoot } from "./store.js";
 import { MemoryIndex } from "./search.js";
@@ -38,11 +38,17 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 
 // Only auto-run when invoked directly (e.g. `node dist/index.js`), not when
 // imported (the CLI imports `main` to implement the `serve` subcommand).
-const invokedDirectly =
-  process.argv[1] !== undefined &&
-  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+// realpathSync canonicalises both sides so a symlinked bin still matches.
+function isInvokedDirectly(): boolean {
+  if (process.argv[1] === undefined) return false;
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
 
-if (invokedDirectly) {
+if (isInvokedDirectly()) {
   main().catch((err: unknown) => {
     log(`fatal: ${(err as Error).message}`);
     process.exit(1);

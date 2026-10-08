@@ -11,7 +11,7 @@
  */
 
 import { promises as fs } from "node:fs";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ENTRY_TYPES, TYPE_DIRS } from "./schema.js";
@@ -201,11 +201,19 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<numbe
 }
 
 // Only auto-run when invoked directly (not when imported by tests).
-const invokedDirectly =
-  process.argv[1] !== undefined &&
-  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+// Only auto-run when invoked directly (not when imported by tests).
+// Resolve symlinks on both sides so a globally-installed bin (a symlink to
+// dist/cli.js) still matches and the CLI actually runs.
+function isInvokedDirectly(): boolean {
+  if (process.argv[1] === undefined) return false;
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
 
-if (invokedDirectly) {
+if (isInvokedDirectly()) {
   run()
     .then((code) => process.exit(code))
     .catch((e: unknown) => {

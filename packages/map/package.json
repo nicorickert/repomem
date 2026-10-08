@@ -1,6 +1,6 @@
 {
   "name": "@repomem/map",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Structure map for repomem. Answers what/where: what each file is about and where a concept lives. Optional companion to @repomem/memory.",
   "license": "MIT",
   "author": "Nicolás Rickert",

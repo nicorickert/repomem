@@ -11,7 +11,7 @@
  * prompter here is injected into {@link runInstaller}.
  */
 
-import path from "node:path";
+import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   intro,
@@ -69,11 +69,19 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<numbe
 }
 
 // Only auto-run when invoked directly (not when imported by tests).
-const invokedDirectly =
-  process.argv[1] !== undefined &&
-  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+// Resolve symlinks on both sides: when installed globally the bin on PATH is a
+// symlink to dist/cli.js, so a plain path compare would never match and the CLI
+// would silently do nothing. realpathSync canonicalises both to the real file.
+function isInvokedDirectly(): boolean {
+  if (process.argv[1] === undefined) return false;
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
 
-if (invokedDirectly) {
+if (isInvokedDirectly()) {
   run()
     .then((code) => process.exit(code))
     .catch((e: unknown) => {
