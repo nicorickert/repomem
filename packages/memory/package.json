@@ -1,6 +1,6 @@
 {
   "name": "@repomem/memory",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Your repo's memory, available to every AI tool your team uses. A local MCP server that turns a memory/ folder into searchable shared context.",
   "license": "MIT",
   "author": "Nicolás Rickert",

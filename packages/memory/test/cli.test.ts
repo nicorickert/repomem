@@ -107,15 +107,15 @@ describe("repomem setup", () => {
     const mcp = JSON.parse(
       await fs.readFile(path.join(tmp, ".kiro", "settings", "mcp.json"), "utf8"),
     );
-    expect(mcp.mcpServers.repomem.command).toBe("npx");
-    expect(mcp.mcpServers.repomem.args).toEqual([
+    expect(mcp.mcpServers["repomem-memory"].command).toBe("npx");
+    expect(mcp.mcpServers["repomem-memory"].args).toEqual([
       "-y",
       "--package",
       "@repomem/memory",
       "repomem-memory",
       "serve",
     ]);
-    expect(mcp.mcpServers.repomem.autoApprove).toContain("search_memory");
+    expect(mcp.mcpServers["repomem-memory"].autoApprove).toContain("search_memory");
 
     const agent = JSON.parse(
       await fs.readFile(path.join(tmp, ".kiro", "agents", "repomem.json"), "utf8"),

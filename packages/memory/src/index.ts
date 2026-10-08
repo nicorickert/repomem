@@ -13,7 +13,7 @@ import { MemoryIndex } from "./search.js";
 import { registerAllTools, SERVER_INFO } from "./server.js";
 
 function log(message: string): void {
-  process.stderr.write(`[repomem] ${message}\n`);
+  process.stderr.write(`[repomem-memory] ${message}\n`);
 }
 
 /** Read an optional `--root <path>` from argv. */

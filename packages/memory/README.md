@@ -132,7 +132,7 @@ The server re-checks file modification times before each search, so a
 ```json
 {
   "mcpServers": {
-    "repomem": {
+    "repomem-memory": {
       "command": "npx",
       "args": ["-y", "--package", "@repomem/memory", "repomem-memory", "serve"],
       "env": {},
@@ -164,7 +164,7 @@ supported today.
 ```json
 {
   "mcpServers": {
-    "repomem": {
+    "repomem-memory": {
       "command": "npx",
       "args": ["-y", "--package", "@repomem/memory", "repomem-memory", "serve"]
     }

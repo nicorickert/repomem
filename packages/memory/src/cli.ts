@@ -45,7 +45,7 @@ function hasFlag(argv: string[], name: string): boolean {
 const MEMORY_README = `# Memory
 
 This folder is your repository's shared memory, read and extended by AI tools
-through the \`repomem\` MCP server.
+through the \`repomem-memory\` MCP server.
 
 Each entry is a markdown file with structured frontmatter, organized by type:
 

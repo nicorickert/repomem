@@ -17,7 +17,7 @@ const KIRO_ASSETS = path.join(ASSETS_DIR, "kiro");
 
 /** The spec repomem contributes to a Kiro setup. */
 export const repomemSpec: AgentSetupSpec = {
-  serverName: "repomem",
+  serverName: "repomem-memory",
   mcpServer: {
     command: "npx",
     args: ["-y", "--package", "@repomem/memory", "repomem-memory", "serve"],

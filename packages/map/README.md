@@ -5,7 +5,7 @@
 
 > Status: MVP. Structure map for [`@repomem/memory`](../memory). It answers **"what and
 > where"**: what each file is about and where a concept lives. It is an optional
-> companion to the `repomem` memory server.
+> companion to the `repomem-memory` memory server.
 
 The map stores one LLM-written **summary per source file**, committed to the
 repo, and serves them over MCP so an agent can search the codebase and read a
@@ -36,12 +36,12 @@ deterministic, which is what blast-radius measurement needs.
 
 ### 1. Register the MCP server (infra, once, manual)
 
-Add the server to your MCP client (e.g. Kiro) alongside `repomem`:
+Add the server to your MCP client (e.g. Kiro) alongside `repomem-memory`:
 
 ```json
 {
   "mcpServers": {
-    "repomem":     { "command": "npx", "args": ["-y", "--package", "@repomem/memory", "repomem-memory", "serve"] },
+    "repomem-memory": { "command": "npx", "args": ["-y", "--package", "@repomem/memory", "repomem-memory", "serve"] },
     "repomem-map": { "command": "npx", "args": ["-y", "--package", "@repomem/map", "repomem-map", "serve", "--root", "."] }
   }
 }

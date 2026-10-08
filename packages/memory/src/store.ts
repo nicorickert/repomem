@@ -31,7 +31,7 @@ import {
 
 /** Log a diagnostic to stderr. Never use stdout (reserved for MCP). */
 function warn(message: string): void {
-  process.stderr.write(`[repomem] ${message}\n`);
+  process.stderr.write(`[repomem-memory] ${message}\n`);
 }
 
 /** Today's date in UTC as `YYYY-MM-DD`. */

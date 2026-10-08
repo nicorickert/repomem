@@ -125,8 +125,8 @@ describe("runInstaller", () => {
     );
     expect(code).toBe(0);
     const mcp = await readJson(kiro("settings", "mcp.json"));
-    expect(Object.keys(mcp.mcpServers).sort()).toEqual(["repomem", "repomem-map"]);
-    expect(mcp.mcpServers.repomem.args).toContain("@repomem/memory");
+    expect(Object.keys(mcp.mcpServers).sort()).toEqual(["repomem-map", "repomem-memory"]);
+    expect(mcp.mcpServers["repomem-memory"].args).toContain("@repomem/memory");
     expect(mcp.mcpServers["repomem-map"].args).toContain("@repomem/map");
     expect(existsSync(kiro("skills", "repomem-memory", "SKILL.md"))).toBe(true);
     expect(existsSync(kiro("skills", "repomem-map-structure", "SKILL.md"))).toBe(true);
@@ -139,7 +139,7 @@ describe("runInstaller", () => {
     );
     expect(code).toBe(0);
     const mcp = await readJson(kiro("settings", "mcp.json"));
-    expect(Object.keys(mcp.mcpServers)).toEqual(["repomem"]);
+    expect(Object.keys(mcp.mcpServers)).toEqual(["repomem-memory"]);
   });
 
   it("uses the prompter when args are incomplete", async () => {

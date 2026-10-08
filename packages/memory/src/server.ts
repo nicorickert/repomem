@@ -44,7 +44,7 @@ function summarize(entry: MemoryEntry) {
 }
 
 export const SERVER_INFO = {
-  name: "repomem",
+  name: "repomem-memory",
   version: "0.1.0",
 } as const;
 
