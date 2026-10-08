@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # required for npm provenance (OIDC)
+  id-token: write # required for npm trusted publishing (OIDC) + provenance
 
 jobs:
   publish:
@@ -22,7 +22,10 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing (OIDC, no token) requires a recent npm.
+      - name: Upgrade npm (trusted publishing needs >= 11.5.1)
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: npm ci
@@ -37,19 +40,15 @@ jobs:
         run: npm test
 
       # Publish in dependency order: core -> memory -> map.
-      # --access public is required for scoped packages; --provenance attaches
-      # a signed build attestation (requires id-token: write above).
+      # Authentication is tokenless via npm trusted publishing (configured per
+      # package on npmjs.com against this repo + workflow). No NPM_TOKEN secret.
+      # --access public is required for scoped packages; provenance is attached
+      # automatically under trusted publishing.
       - name: Publish @repomem/core
-        run: npm publish -w @repomem/core --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish -w @repomem/core --access public
 
       - name: Publish @repomem/memory
-        run: npm publish -w @repomem/memory --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish -w @repomem/memory --access public
 
       - name: Publish @repomem/map
-        run: npm publish -w @repomem/map --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish -w @repomem/map --access public
