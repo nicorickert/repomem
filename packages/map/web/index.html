@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>repomem-map — dependency graph</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #15181d;
+        --panel: #1b1f26;
+        --fg: #e6e8eb;
+        --muted: #a6adbb;
+        --border: #333a45;
+        --cycle: #ff5a52;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 13px/1.4 system-ui, sans-serif;
+        color: var(--fg);
+        background: var(--bg);
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        grid-template-rows: auto 1fr;
+        grid-template-areas: "toolbar toolbar" "graph side";
+        height: 100vh;
+      }
+      #toolbar {
+        grid-area: toolbar;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 8px 12px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+      }
+      #toolbar label { display: flex; gap: 4px; align-items: center; }
+      #graph { grid-area: graph; overflow: hidden; background: var(--bg); }
+      #side {
+        grid-area: side;
+        background: var(--panel);
+        border-left: 1px solid var(--border);
+        padding: 12px;
+        overflow: auto;
+      }
+      #side h2 { font-size: 14px; margin: 0 0 8px; word-break: break-all; }
+      #side .summary { color: var(--muted); }
+      #side .lists { margin-top: 12px; }
+      #side ul { margin: 4px 0 12px; padding-left: 18px; }
+      #side li { cursor: pointer; color: var(--fg); }
+      #side li:hover { text-decoration: underline; }
+      .legend { font-size: 11px; color: var(--muted); }
+      .legend .cycle { color: var(--cycle); font-weight: 600; }
+      svg { width: 100%; height: 100%; display: block; }
+      .link { stroke: rgba(166, 173, 187, 0.35); stroke-width: 1px; }
+      .link.cycle { stroke: var(--cycle); stroke-width: 1.5px; }
+      .node { cursor: pointer; stroke: var(--bg); stroke-width: 1.5px; }
+      .node.cycle { stroke: var(--cycle); stroke-width: 2px; }
+      .node.dim, .link.dim { opacity: 0.1; }
+      .label {
+        font-size: 9px;
+        pointer-events: none;
+        fill: var(--fg);
+        paint-order: stroke;
+        stroke: var(--bg);
+        stroke-width: 3px;
+        stroke-linejoin: round;
+      }
+      .hull {
+        fill-opacity: 0.08;
+        stroke-opacity: 0.5;
+        stroke-width: 1.5px;
+        stroke-dasharray: 4 3;
+        pointer-events: none;
+      }
+      .hull-label {
+        font-size: 11px;
+        font-weight: 600;
+        pointer-events: none;
+        fill: var(--muted);
+        paint-order: stroke;
+        stroke: var(--bg);
+        stroke-width: 3px;
+        stroke-linejoin: round;
+        text-anchor: middle;
+      }
+      input, select, button {
+        background: #11141a;
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 3px 6px;
+      }
+      button { cursor: pointer; }
+      button:hover { border-color: var(--muted); }
+      .arrowhead { fill: rgba(166, 173, 187, 0.7); }
+      .arrowhead.cycle { fill: var(--cycle); }
+    </style>
+  </head>
+  <body>
+    <div id="toolbar">
+      <strong>repomem-map</strong>
+      <label>scope <input id="scope" type="text" placeholder="src/api" /></label>
+      <label>focus <input id="focus" type="text" placeholder="src/a.ts" /></label>
+      <label>ignore <input id="ignore" type="text" placeholder="src/legacy, src/gen" /></label>
+      <label>depth <input id="depth" type="number" min="1" style="width: 56px" /></label>
+      <label>size by
+        <select id="metric">
+          <option value="degree">degree (fan-in+out)</option>
+          <option value="surface">imports+exports</option>
+        </select>
+      </label>
+      <label>group by
+        <select id="group">
+          <option value="1">folder L1 (src)</option>
+          <option value="2" selected>folder L2 (src/api)</option>
+          <option value="3">folder L3 (src/api/db)</option>
+        </select>
+      </label>
+      <button id="apply">Apply</button>
+      <span class="legend">arrow A→B = A imports B · <span class="cycle">red</span> = cycle · labels show hubs</span>
+    </div>
+    <div id="graph"></div>
+    <aside id="side"><em>Click a node to inspect it.</em></aside>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

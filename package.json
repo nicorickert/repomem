@@ -1,43 +1,38 @@
 {
-  "name": "repomem",
-  "version": "0.1.0",
-  "description": "Your repo's memory, available to every AI tool your team uses. A local MCP server that turns a memory/ folder into searchable shared context.",
+  "name": "repomem-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for @repomem/core, @repomem/memory and @repomem/map.",
   "license": "MIT",
-  "author": "Nicol\u00e1s Rickert",
+  "author": "Nicolás Rickert",
   "type": "module",
   "engines": {
     "node": ">=22"
   },
-  "bin": {
-    "repomem": "dist/cli.js"
-  },
-  "main": "dist/index.js",
-  "files": [
-    "dist",
-    "templates",
-    "README.md",
-    "LICENSE"
+  "workspaces": [
+    "packages/*"
   ],
-  "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist",
-    "start": "node dist/index.js",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+  "//security-notes": {
+    "GHSA-vfj7-8cjw-p6xm": "braces@3.0.3 DoS via deeply-nested glob patterns, reached through fast-glob -> micromatch -> braces. No upstream fix published as of 2026-10-03 (3.0.3 is the latest and the flagged version). Not exploitable here: fast-glob is only invoked with static literal patterns ('**/*', '**/*.json') in packages/map/src/scan.ts and packages/map/src/mapindex.ts; no user-controlled glob pattern reaches braces. Re-audit when a patched braces/fast-glob is released."
   },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0",
-    "fast-glob": "^3.3.2",
-    "gray-matter": "^4.0.3",
-    "minisearch": "^7.1.0",
-    "picomatch": "^4.0.2",
-    "zod": "^4.6.5"
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build:core": "npm run build -w @repomem/core",
+    "test:core": "npm run test -w @repomem/core",
+    "typecheck:core": "npm run typecheck -w @repomem/core",
+    "build:memory": "npm run build -w @repomem/memory",
+    "test:memory": "npm run test -w @repomem/memory",
+    "typecheck:memory": "npm run typecheck -w @repomem/memory",
+    "build:map": "npm run build -w @repomem/map",
+    "test:map": "npm run test -w @repomem/map",
+    "typecheck:map": "npm run typecheck -w @repomem/map",
+    "validate:example": "npm run build -w @repomem/memory && node packages/memory/dist/cli.js validate --root packages/memory/memory-example"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@types/picomatch": "^3.0.1",
-    "typescript": "^5.6.0",
-    "vitest": "^4.1.11"
+    "@types/d3": "^7.4.3",
+    "d3": "^7.9.0"
   }
 }
