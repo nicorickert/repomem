@@ -10,7 +10,7 @@
  */
 
 import path from "node:path";
-import { findGitRoot } from "../store.js";
+import { findGitRoot } from "./git.js";
 
 export interface ResolveRepoRootOptions {
   /** Explicit `--root` value, if provided on the CLI. */

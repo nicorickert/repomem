@@ -13,7 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { startServer } from "./index.js";
 import { launchViewer } from "./web/launch.js";
-import { runSetup } from "repomem/setup";
+import { runSetup } from "@repomem/core";
 import { mapSpec } from "./setup/spec.js";
 
 export interface ParsedArgs {

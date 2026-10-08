@@ -2,7 +2,7 @@
   "name": "repomem-monorepo",
   "version": "0.0.0",
   "private": true,
-  "description": "Monorepo for repomem (memory) and repomem-map (structure).",
+  "description": "Monorepo for @repomem/core, @repomem/memory and @repomem/map.",
   "license": "MIT",
   "author": "Nicolás Rickert",
   "type": "module",
@@ -13,17 +13,23 @@
     "packages/*"
   ],
   "//security-notes": {
-    "GHSA-vfj7-8cjw-p6xm": "braces@3.0.3 DoS via deeply-nested glob patterns, reached through fast-glob -> micromatch -> braces. No upstream fix published as of 2026-10-03 (3.0.3 is the latest and the flagged version). Not exploitable here: fast-glob is only invoked with static literal patterns ('**/*', '**/*.json') in repomem-map/src/scan.ts and mapindex.ts; no user-controlled glob pattern reaches braces. Re-audit when a patched braces/fast-glob is released."
+    "GHSA-vfj7-8cjw-p6xm": "braces@3.0.3 DoS via deeply-nested glob patterns, reached through fast-glob -> micromatch -> braces. No upstream fix published as of 2026-10-03 (3.0.3 is the latest and the flagged version). Not exploitable here: fast-glob is only invoked with static literal patterns ('**/*', '**/*.json') in packages/map/src/scan.ts and packages/map/src/mapindex.ts; no user-controlled glob pattern reaches braces. Re-audit when a patched braces/fast-glob is released."
   },
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "clean": "npm run clean --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "build:core": "npm run build -w repomem",
-    "test:core": "npm run test -w repomem",
-    "typecheck:core": "npm run typecheck -w repomem",
-    "validate:example": "npm run build -w repomem && node packages/repomem/dist/cli.js validate --root packages/repomem/memory-example"
+    "build:core": "npm run build -w @repomem/core",
+    "test:core": "npm run test -w @repomem/core",
+    "typecheck:core": "npm run typecheck -w @repomem/core",
+    "build:memory": "npm run build -w @repomem/memory",
+    "test:memory": "npm run test -w @repomem/memory",
+    "typecheck:memory": "npm run typecheck -w @repomem/memory",
+    "build:map": "npm run build -w @repomem/map",
+    "test:map": "npm run test -w @repomem/map",
+    "typecheck:map": "npm run typecheck -w @repomem/map",
+    "validate:example": "npm run build -w @repomem/memory && node packages/memory/dist/cli.js validate --root packages/memory/memory-example"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",

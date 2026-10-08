@@ -1,6 +1,9 @@
-# repomem
+# @repomem/memory
 
 **Your repo's memory, available to every AI tool your team uses.**
+
+> npm package: [`@repomem/memory`](https://www.npmjs.com/package/@repomem/memory) ·
+> CLI command: `repomem` (unchanged for convenience).
 
 `repomem` is a local [Model Context Protocol](https://modelcontextprotocol.io)
 (MCP) server that turns a `memory/` folder in your repository into searchable,
@@ -29,10 +32,16 @@ Design principles:
 
 ## Quick start
 
-Scaffold a `memory/` folder in your repo:
+Scaffold a `memory/` folder in your repo (no install needed, `npx` fetches it):
 
 ```bash
 npx repomem init
+```
+
+Prefer a pinned local install? Add the package (the CLI is still `repomem`):
+
+```bash
+npm install -D @repomem/memory
 ```
 
 Register the server with your AI tool (see [MCP client config](#mcp-client-config)),

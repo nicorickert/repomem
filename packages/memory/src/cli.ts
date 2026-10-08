@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { ENTRY_TYPES, TYPE_DIRS } from "./schema.js";
 import { resolveMemoryRoot } from "./store.js";
 import { validateRoot, formatReport } from "./validate.js";
-import { runSetup } from "./setup/index.js";
+import { runSetup } from "@repomem/core";
 import { repomemSpec } from "./setup/spec.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));

@@ -1,8 +1,9 @@
 /**
- * setup/index.ts — public entrypoint for the shared `setup` utilities.
+ * @repomem/core — shared setup toolkit used by @repomem/memory and
+ * @repomem/map to install skills, hooks and MCP config into an agent.
  *
- * Both repomem and repomem-map build their per-package `setup` commands on top
- * of these helpers. repomem-map imports them via `repomem/setup`.
+ * This package is agent-infrastructure only: it knows nothing about the memory
+ * or structure-map domains. Each consumer supplies its own {@link AgentSetupSpec}.
  */
 
 export {
@@ -17,6 +18,8 @@ export {
 } from "./fsops.js";
 
 export { resolveRepoRoot, type ResolveRepoRootOptions } from "./root.js";
+
+export { findGitRoot } from "./git.js";
 
 export {
   installForKiro,

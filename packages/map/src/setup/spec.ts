@@ -8,7 +8,7 @@
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { AgentSetupSpec } from "repomem/setup";
+import type { AgentSetupSpec } from "@repomem/core";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 // dist/setup/spec.js -> ../../assets  (package root holds `assets/`)

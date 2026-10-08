@@ -11,7 +11,7 @@ import {
   mergeJsonAdditive,
   mergeReports,
   emptyReport,
-} from "../src/setup/fsops.js";
+} from "../src/fsops.js";
 
 let tmp: string;
 

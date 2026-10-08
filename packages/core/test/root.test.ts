@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { resolveRepoRoot } from "../src/setup/root.js";
+import { resolveRepoRoot } from "../src/root.js";
 
 let tmp: string;
 
