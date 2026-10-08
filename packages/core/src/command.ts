@@ -6,7 +6,7 @@
  */
 
 import { resolveRepoRoot } from "./root.js";
-import { installForKiro, type AgentSetupSpec } from "./kiro.js";
+import { installForKiro, type AgentSetupSpec, type SetupIo } from "./kiro.js";
 import { mergeReports, emptyReport, type SetupReport } from "./fsops.js";
 
 /** Agents supported today. Extend by adding a sibling installer. */
@@ -17,12 +17,11 @@ export interface SetupArgs {
   agent?: string;
   rootFlag?: string;
   force?: boolean;
+  /** Skip any spec-provided postSetup step (e.g. memory folder scaffolding). */
+  skipPostSetup?: boolean;
 }
 
-export interface SetupIo {
-  out: (message: string) => void;
-  err: (message: string) => void;
-}
+export type { SetupIo };
 
 function printReport(report: SetupReport, io: SetupIo): void {
   if (report.created.length) {
@@ -102,6 +101,12 @@ export async function runSetupMany(
     io.out(`Configured ${spec.serverName} for ${agent} at ${repoRoot}`);
     printReport(report, io);
     mergeReports(combined, report);
+
+    // Domain-specific follow-up (e.g. scaffolding the memory folder). Core
+    // stays agnostic: it just invokes the callback unless the caller opts out.
+    if (spec.postSetup && !args.skipPostSetup) {
+      await spec.postSetup(repoRoot, io);
+    }
   }
   return 0;
 }

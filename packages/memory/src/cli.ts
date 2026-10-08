@@ -10,20 +10,14 @@
  * `validate` exits non-zero on any error so it can gate pre-commit and CI.
  */
 
-import { promises as fs } from "node:fs";
 import { existsSync, realpathSync } from "node:fs";
-import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ENTRY_TYPES, TYPE_DIRS } from "./schema.js";
 import { resolveMemoryRoot } from "./store.js";
 import { validateRoot, formatReport } from "./validate.js";
+import { scaffoldMemory } from "./scaffold.js";
 import { main as startServer } from "./index.js";
 import { runSetup } from "@repomem/core";
 import { repomemSpec } from "./setup/spec.js";
-
-const here = path.dirname(fileURLToPath(import.meta.url));
-// Templates ship alongside dist/ at the package root: dist/cli.js -> ../templates
-const TEMPLATES_DIR = path.resolve(here, "..", "templates");
 
 function out(message: string): void {
   process.stdout.write(message + "\n");
@@ -42,79 +36,8 @@ function hasFlag(argv: string[], name: string): boolean {
   return argv.includes(name);
 }
 
-const MEMORY_README = `# Memory
-
-This folder is your repository's shared memory, read and extended by AI tools
-through the \`repomem-memory\` MCP server.
-
-Each entry is a markdown file with structured frontmatter, organized by type:
-
-- \`decisions/\`   — choices made and why
-- \`conventions/\` — rules the team follows
-- \`limitations/\` — known constraints and gotchas
-- \`learnings/\`   — lessons worth remembering
-- \`contexts/\`    — project and module-level context (what things are and why)
-
-## How it works
-
-AI tools **propose** new entries as drafts (\`status: draft\`). A human reviews
-and **accepts** them in the same pull request as the related change. Entries are
-versioned with git — no external database.
-
-Run \`npx --package @repomem/memory repomem-memory validate\` to check entries before committing.
-
-See \`templates/\` for a starting point for each entry type.
-`;
-
 async function cmdInit(root: string): Promise<number> {
-  const created: string[] = [];
-  const skipped: string[] = [];
-
-  async function ensureDir(dir: string): Promise<void> {
-    if (existsSync(dir)) {
-      skipped.push(dir);
-    } else {
-      await fs.mkdir(dir, { recursive: true });
-      created.push(dir);
-    }
-  }
-
-  await ensureDir(root);
-  for (const type of ENTRY_TYPES) {
-    await ensureDir(path.join(root, TYPE_DIRS[type]));
-  }
-
-  // README (never overwrite).
-  const readme = path.join(root, "README.md");
-  if (existsSync(readme)) {
-    skipped.push(readme);
-  } else {
-    await fs.writeFile(readme, MEMORY_README, "utf8");
-    created.push(readme);
-  }
-
-  // Templates (never overwrite individual files).
-  const destTemplates = path.join(root, "templates");
-  await ensureDir(destTemplates);
-  for (const type of ENTRY_TYPES) {
-    const src = path.join(TEMPLATES_DIR, `${type}.md`);
-    const dest = path.join(destTemplates, `${type}.md`);
-    if (existsSync(dest)) {
-      skipped.push(dest);
-      continue;
-    }
-    try {
-      const content = await fs.readFile(src, "utf8");
-      await fs.writeFile(dest, content, "utf8");
-      created.push(dest);
-    } catch {
-      err(`warning: template not found: ${src}`);
-    }
-  }
-
-  out(`Initialized memory at ${root}`);
-  if (created.length) out(`  created:\n${created.map((c) => `    + ${c}`).join("\n")}`);
-  if (skipped.length) out(`  already present (left untouched):\n${skipped.map((c) => `    = ${c}`).join("\n")}`);
+  await scaffoldMemory(root, { out, err });
   return 0;
 }
 
@@ -142,7 +65,7 @@ function usage(): void {
       "  repomem-memory serve [--root <dir>]      Start the MCP server over stdio (default for agents)",
       "  repomem-memory init [--root <dir>]       Scaffold the memory/ folder and templates",
       "  repomem-memory validate [--root <dir>]   Validate entries (frontmatter, refs, secrets)",
-      "  repomem-memory setup --agent <name>      Install skills, hooks and MCP config for an agent",
+      "  repomem-memory setup --agent <name>      Install skills, hooks and MCP config (also scaffolds memory/; --no-init to skip)",
       "",
       "Root resolution: --root > MEMORY_ROOT env > <git root>/.repomem/memory",
       "setup root resolution: --root > REPOMEM_REPO_ROOT env > <git root>",
@@ -167,6 +90,7 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<numbe
         agent: parseFlag(argv, "--agent"),
         rootFlag: parseFlag(argv, "--root"),
         force: hasFlag(argv, "--force"),
+        skipPostSetup: hasFlag(argv, "--no-init"),
       },
       { out, err },
     );

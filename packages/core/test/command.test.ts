@@ -120,3 +120,46 @@ describe("runSetup (single spec, delegates to runSetupMany)", () => {
     expect(code).toBe(1);
   });
 });
+
+
+describe("runSetupMany postSetup", () => {
+  it("invokes a spec's postSetup with the resolved repo root", async () => {
+    const spec = await memorySpec();
+    let seen: string | undefined;
+    spec.postSetup = async (root) => {
+      seen = root;
+    };
+    const code = await runSetupMany([spec], { agent: "kiro", rootFlag: repoRoot }, io);
+    expect(code).toBe(0);
+    expect(seen).toBe(repoRoot);
+  });
+
+  it("skips postSetup when skipPostSetup is set", async () => {
+    const spec = await memorySpec();
+    let called = false;
+    spec.postSetup = async () => {
+      called = true;
+    };
+    const code = await runSetupMany(
+      [spec],
+      { agent: "kiro", rootFlag: repoRoot, skipPostSetup: true },
+      io,
+    );
+    expect(code).toBe(0);
+    expect(called).toBe(false);
+  });
+
+  it("runs postSetup for each spec that defines one", async () => {
+    const a = await memorySpec();
+    const b = await mapSpec();
+    const calls: string[] = [];
+    a.postSetup = async () => {
+      calls.push("memory");
+    };
+    b.postSetup = async () => {
+      calls.push("map");
+    };
+    await runSetupMany([a, b], { agent: "kiro", rootFlag: repoRoot }, io);
+    expect(calls).toEqual(["memory", "map"]);
+  });
+});

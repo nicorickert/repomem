@@ -43,6 +43,7 @@ function usage(io: SetupIo): void {
       `  --agent     One of: ${SUPPORTED_AGENTS.join(", ")}.`,
       "  --root      Repository root (default: enclosing git root).",
       "  --force     Overwrite repomem's own existing entries.",
+      "  --no-init   Skip scaffolding the memory/ folder (memory server only).",
       "",
       "Each server can also be configured on its own with the scoped packages:",
       "  npx --package @repomem/memory repomem-memory setup --agent <name>",
@@ -110,7 +111,12 @@ async function runSelection(
 
   return runSetupMany(
     specs,
-    { agent: selection.agent, rootFlag: parsed.rootFlag, force: parsed.force },
+    {
+      agent: selection.agent,
+      rootFlag: parsed.rootFlag,
+      force: parsed.force,
+      skipPostSetup: parsed.skipInit,
+    },
     io,
   );
 }

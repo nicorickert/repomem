@@ -29,6 +29,8 @@ export interface ParsedCli {
   rootFlag?: string;
   /** `--force` to overwrite own existing entries. */
   force: boolean;
+  /** `--no-init` to skip memory-folder scaffolding (postSetup). */
+  skipInit: boolean;
   /**
    * True when enough was supplied on the CLI to skip the interactive menu
    * (both an agent and an explicit server selection).
@@ -83,13 +85,14 @@ export function parseCli(argv: string[]): ParsedCli {
   const first = argv[0];
 
   if (!first || first === "--help" || first === "-h" || first === "help") {
-    return { command: "help", force: false, nonInteractive: false };
+    return { command: "help", force: false, skipInit: false, nonInteractive: false };
   }
 
   if (first !== "setup") {
     return {
       command: "help",
       force: false,
+      skipInit: false,
       nonInteractive: false,
       error: `Unknown command: ${first}`,
     };
@@ -98,13 +101,14 @@ export function parseCli(argv: string[]): ParsedCli {
   const agent = flag(argv, "--agent");
   const rootFlag = flag(argv, "--root");
   const force = hasFlag(argv, "--force");
+  const skipInit = hasFlag(argv, "--no-init");
 
   let servers: string[] | undefined;
   const rawServers = flag(argv, "--servers");
   if (rawServers !== undefined) {
     const result = parseServers(rawServers);
     if (result.error) {
-      return { command: "setup", agent, rootFlag, force, nonInteractive: false, error: result.error };
+      return { command: "setup", agent, rootFlag, force, skipInit, nonInteractive: false, error: result.error };
     }
     servers = result.servers;
   }
@@ -112,5 +116,5 @@ export function parseCli(argv: string[]): ParsedCli {
   // Non-interactive only when both an agent and a server selection are present.
   const nonInteractive = agent !== undefined && servers !== undefined;
 
-  return { command: "setup", agent, servers, rootFlag, force, nonInteractive };
+  return { command: "setup", agent, servers, rootFlag, force, skipInit, nonInteractive };
 }

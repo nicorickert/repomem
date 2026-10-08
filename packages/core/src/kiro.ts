@@ -70,6 +70,12 @@ export interface HookScriptSource {
   srcPath: string;
 }
 
+/** Output sink for setup commands: `out` for stdout, `err` for stderr. */
+export interface SetupIo {
+  out: (message: string) => void;
+  err: (message: string) => void;
+}
+
 /**
  * Everything a package contributes to a Kiro setup. The installer is otherwise
  * agent-agnostic — adding another agent means adding a sibling installer that
@@ -86,6 +92,16 @@ export interface AgentSetupSpec {
   hookScripts?: HookScriptSource[];
   /** Optional hooks block merged into the agent config. */
   agentHooks?: KiroHooks;
+  /**
+   * Optional domain-specific step run after the agent files are installed.
+   * Core stays agnostic: it only invokes this callback (unless the caller
+   * opts out via `skipPostSetup`). The memory package uses it to scaffold the
+   * reviewable `memory/` folder so `setup` also initialises content.
+   *
+   * @param repoRoot the resolved repository root `.kiro/` was written under
+   * @param io       the same output sink used by the setup command
+   */
+  postSetup?: (repoRoot: string, io: SetupIo) => Promise<void>;
 }
 
 export interface InstallOptions {

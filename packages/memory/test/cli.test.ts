@@ -159,3 +159,33 @@ describe("repomem setup", () => {
     expect(skill).toMatch(/\ndescription: /);
   });
 });
+
+
+describe("repomem-memory setup scaffolds the memory folder", () => {
+  const memRoot = () => path.join(tmp, ".repomem", "memory");
+
+  it("creates the memory/ structure as part of setup", async () => {
+    const code = await run(["setup", "--agent", "kiro", "--root", tmp]);
+    expect(code).toBe(0);
+    expect(existsSync(path.join(tmp, ".kiro", "settings", "mcp.json"))).toBe(true);
+    for (const d of ["decisions", "conventions", "limitations", "learnings", "contexts"]) {
+      expect(existsSync(path.join(memRoot(), d))).toBe(true);
+    }
+    expect(existsSync(path.join(memRoot(), "README.md"))).toBe(true);
+    expect(existsSync(path.join(memRoot(), "templates", "decision.md"))).toBe(true);
+  });
+
+  it("does NOT scaffold the memory folder when --no-init is passed", async () => {
+    const code = await run(["setup", "--agent", "kiro", "--root", tmp, "--no-init"]);
+    expect(code).toBe(0);
+    expect(existsSync(path.join(tmp, ".kiro", "settings", "mcp.json"))).toBe(true);
+    expect(existsSync(memRoot())).toBe(false);
+  });
+
+  it("is idempotent: setup after init does not error", async () => {
+    await run(["init", "--root", memRoot()]);
+    const code = await run(["setup", "--agent", "kiro", "--root", tmp]);
+    expect(code).toBe(0);
+    expect(existsSync(path.join(memRoot(), "README.md"))).toBe(true);
+  });
+});

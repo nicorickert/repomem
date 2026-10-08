@@ -79,6 +79,11 @@ describe("parseCli", () => {
   it("forwards --root", () => {
     expect(parseCli(["setup", "--agent", "kiro", "--servers", "all", "--root", "/x"]).rootFlag).toBe("/x");
   });
+
+  it("parses --no-init as skipInit", () => {
+    expect(parseCli(["setup", "--agent", "kiro", "--servers", "all", "--no-init"]).skipInit).toBe(true);
+    expect(parseCli(["setup", "--agent", "kiro", "--servers", "all"]).skipInit).toBe(false);
+  });
 });
 
 describe("runInstaller", () => {
@@ -174,5 +179,24 @@ describe("runInstaller", () => {
     );
     expect(code).toBe(1);
     expect(err.join("\n")).toContain("Unsupported agent");
+  });
+
+  it("scaffolds the memory folder when configuring memory", async () => {
+    const code = await runInstaller(
+      ["setup", "--agent", "kiro", "--servers", "memory", "--root", repoRoot],
+      { io, prompt: neverPrompt },
+    );
+    expect(code).toBe(0);
+    expect(existsSync(path.join(repoRoot, ".repomem", "memory", "README.md"))).toBe(true);
+  });
+
+  it("skips memory scaffolding with --no-init", async () => {
+    const code = await runInstaller(
+      ["setup", "--agent", "kiro", "--servers", "memory", "--root", repoRoot, "--no-init"],
+      { io, prompt: neverPrompt },
+    );
+    expect(code).toBe(0);
+    expect(existsSync(path.join(repoRoot, ".kiro", "settings", "mcp.json"))).toBe(true);
+    expect(existsSync(path.join(repoRoot, ".repomem", "memory"))).toBe(false);
   });
 });
