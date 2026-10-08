@@ -26,11 +26,18 @@ describe("repomem init", () => {
   it("creates the folder structure, README and templates", async () => {
     const code = await run(["init", "--root", root]);
     expect(code).toBe(0);
-    for (const d of ["decisions", "conventions", "limitations", "learnings"]) {
+    for (const d of ["decisions", "conventions", "limitations", "learnings", "contexts"]) {
       expect(existsSync(path.join(root, d))).toBe(true);
     }
     expect(existsSync(path.join(root, "README.md"))).toBe(true);
     expect(existsSync(path.join(root, "templates", "decision.md"))).toBe(true);
+    expect(existsSync(path.join(root, "templates", "context.md"))).toBe(true);
+  });
+
+  it("writes a README that lists the contexts/ folder", async () => {
+    await run(["init", "--root", root]);
+    const readme = await fs.readFile(path.join(root, "README.md"), "utf8");
+    expect(readme).toContain("contexts/");
   });
 
   it("is idempotent and does not overwrite an existing README", async () => {
@@ -93,6 +100,7 @@ describe("repomem setup", () => {
     expect(code).toBe(0);
 
     expect(existsSync(path.join(tmp, ".kiro", "skills", "repomem-memory", "SKILL.md"))).toBe(true);
+    expect(existsSync(path.join(tmp, ".kiro", "skills", "repomem-distill", "SKILL.md"))).toBe(true);
     expect(existsSync(path.join(tmp, ".kiro", "agents", "repomem.json"))).toBe(true);
     expect(existsSync(path.join(tmp, ".kiro", "settings", "mcp.json"))).toBe(true);
 
@@ -101,6 +109,12 @@ describe("repomem setup", () => {
     );
     expect(mcp.mcpServers.repomem.command).toBe("npx");
     expect(mcp.mcpServers.repomem.autoApprove).toContain("search_memory");
+
+    const agent = JSON.parse(
+      await fs.readFile(path.join(tmp, ".kiro", "agents", "repomem.json"), "utf8"),
+    );
+    expect(agent.resources).toContain("skill://.kiro/skills/repomem-memory/SKILL.md");
+    expect(agent.resources).toContain("skill://.kiro/skills/repomem-distill/SKILL.md");
   });
 
   it("is idempotent on a second run", async () => {

@@ -258,6 +258,7 @@ export function serializeEntry(frontmatter: Frontmatter, body: string): string {
     title: frontmatter.title,
     status: frontmatter.status,
     date: frontmatter.date,
+    scope: frontmatter.scope,
   };
   if (frontmatter.author !== undefined) data.author = frontmatter.author;
   data.tags = frontmatter.tags;

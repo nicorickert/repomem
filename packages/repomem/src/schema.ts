@@ -8,12 +8,13 @@
 
 import * as z from "zod";
 
-/** The four kinds of memory entry. */
+/** The kinds of memory entry. */
 export const ENTRY_TYPES = [
   "decision",
   "convention",
   "limitation",
   "learning",
+  "context",
 ] as const;
 
 /** Lifecycle of an entry. New entries always start as `draft`. */
@@ -34,6 +35,7 @@ export const TYPE_DIRS: Record<EntryType, string> = {
   convention: "conventions",
   limitation: "limitations",
   learning: "learnings",
+  context: "contexts",
 };
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -65,6 +67,10 @@ export const isoDate = z
  * Defaults mirror the product rules: status defaults to `draft`, and the
  * list fields default to empty so a minimal entry only needs type/title/date.
  *
+ * `scope` describes how broadly an entry applies: `project` (the default,
+ * repo-wide) or a module name (e.g. `db`, `auth`, `frontend`). It is free text
+ * and complements `related_paths` for module-specific entries.
+ *
  * `deprecated_reason` / `superseded_by` are set by `deprecate_memory` and are
  * only meaningful when `status` is `deprecated`.
  */
@@ -74,6 +80,7 @@ export const frontmatterSchema = z
     title: z.string().min(1, "title must not be empty"),
     status: entryStatusSchema.default("draft"),
     date: isoDate,
+    scope: z.string().min(1, "scope must not be empty").default("project"),
     author: z.string().min(1).optional(),
     tags: z.array(z.string().min(1)).default([]),
     related_paths: z.array(z.string().min(1)).default([]),

@@ -30,6 +30,10 @@ export const repomemSpec: AgentSetupSpec = {
       id: "repomem-memory",
       srcDir: path.join(KIRO_ASSETS, "skills", "repomem-memory"),
     },
+    {
+      id: "repomem-distill",
+      srcDir: path.join(KIRO_ASSETS, "skills", "repomem-distill"),
+    },
   ],
   hookScripts: [
     {

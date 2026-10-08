@@ -58,6 +58,24 @@ describe("validateRoot", () => {
     expect(report.checked).toBe(1);
   });
 
+  it("validates a context entry with a module scope", async () => {
+    await writeEntry(
+      tmp,
+      {
+        type: "context",
+        title: "Auth module overview",
+        status: "accepted",
+        date: "2026-01-01",
+        scope: "auth",
+        related_paths: ["src/auth/**"],
+      },
+      "How the auth module is structured.",
+    );
+    const report = await validateRoot(tmp);
+    expect(report.ok).toBe(true);
+    expect(report.checked).toBe(1);
+  });
+
   it("fails on malformed frontmatter (error severity)", async () => {
     await fs.mkdir(path.join(tmp, "decisions"), { recursive: true });
     await fs.writeFile(

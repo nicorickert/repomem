@@ -55,7 +55,7 @@ export function registerReadTools(server: McpServer, index: MemoryIndex): void {
     {
       title: "Search memory",
       description:
-        "Search the repository's memory for decisions, conventions, limitations and learnings. " +
+        "Search the repository's memory for decisions, conventions, limitations, learnings and context. " +
         "Returns short summaries (id, type, title, status, snippet). Deprecated entries are " +
         "excluded by default. Use get_memory with an id to read the full entry.",
       inputSchema: {
@@ -146,7 +146,7 @@ export function registerWriteTools(
         "and accept in a pull request. Rejects duplicates (a title whose id already exists " +
         "for that type). Never overwrites existing entries.",
       inputSchema: {
-        type: entryTypeSchema.describe("decision | convention | limitation | learning"),
+        type: entryTypeSchema.describe("decision | convention | limitation | learning | context"),
         title: z.string().min(1).describe("A concise, human-readable title"),
         body: z.string().min(1).describe("The markdown body of the entry"),
         tags: z.array(z.string()).optional().describe("Freeform tags"),
