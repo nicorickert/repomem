@@ -74,6 +74,13 @@ describe("repomem-map setup", () => {
     expect(existsSync(kiro("skills", "repomem-map-structure", "SKILL.md"))).toBe(true);
     const mcp = await readJson(kiro("settings", "mcp.json"));
     expect(mcp.mcpServers["repomem-map"].command).toBe("npx");
+    expect(mcp.mcpServers["repomem-map"].args).toEqual([
+      "-y",
+      "--package",
+      "@repomem/map",
+      "repomem-map",
+      "serve",
+    ]);
   });
 
   it("returns 1 for an unsupported agent", async () => {

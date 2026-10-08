@@ -20,7 +20,7 @@ export const repomemSpec: AgentSetupSpec = {
   serverName: "repomem",
   mcpServer: {
     command: "npx",
-    args: ["-y", "repomem"],
+    args: ["-y", "--package", "@repomem/memory", "repomem-memory", "serve"],
     env: {},
     disabled: false,
     autoApprove: ["search_memory", "get_memory", "memory_for_path"],

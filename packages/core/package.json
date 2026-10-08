@@ -1,6 +1,6 @@
 {
   "name": "@repomem/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared setup toolkit for the @repomem packages: idempotent filesystem helpers and an agent (Kiro) installer that wires skills, hooks and MCP config.",
   "license": "MIT",
   "author": "Nicolás Rickert",

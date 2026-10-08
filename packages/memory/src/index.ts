@@ -6,6 +6,8 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { resolveMemoryRoot } from "./store.js";
 import { MemoryIndex } from "./search.js";
 import { registerAllTools, SERVER_INFO } from "./server.js";
@@ -34,7 +36,15 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   log("server ready on stdio");
 }
 
-main().catch((err: unknown) => {
-  log(`fatal: ${(err as Error).message}`);
-  process.exit(1);
-});
+// Only auto-run when invoked directly (e.g. `node dist/index.js`), not when
+// imported (the CLI imports `main` to implement the `serve` subcommand).
+const invokedDirectly =
+  process.argv[1] !== undefined &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (invokedDirectly) {
+  main().catch((err: unknown) => {
+    log(`fatal: ${(err as Error).message}`);
+    process.exit(1);
+  });
+}

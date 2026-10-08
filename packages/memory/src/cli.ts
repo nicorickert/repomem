@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 /**
- * cli.ts — `repomem init` and `repomem validate`.
+ * cli.ts — `repomem-memory` command line.
  *
- *   repomem init [--root <dir>]       scaffold the memory/ folder + templates
- *   repomem validate [--root <dir>]   check frontmatter, supersedes refs, secrets
+ *   repomem-memory serve [--root <dir>]      start the MCP server over stdio
+ *   repomem-memory init [--root <dir>]       scaffold the memory/ folder + templates
+ *   repomem-memory validate [--root <dir>]   check frontmatter, supersedes refs, secrets
+ *   repomem-memory setup --agent <name>      install skills, hooks and MCP config
  *
  * `validate` exits non-zero on any error so it can gate pre-commit and CI.
  */
@@ -15,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { ENTRY_TYPES, TYPE_DIRS } from "./schema.js";
 import { resolveMemoryRoot } from "./store.js";
 import { validateRoot, formatReport } from "./validate.js";
+import { main as startServer } from "./index.js";
 import { runSetup } from "@repomem/core";
 import { repomemSpec } from "./setup/spec.js";
 
@@ -58,7 +61,7 @@ AI tools **propose** new entries as drafts (\`status: draft\`). A human reviews
 and **accepts** them in the same pull request as the related change. Entries are
 versioned with git — no external database.
 
-Run \`npx repomem validate\` to check entries before committing.
+Run \`npx --package @repomem/memory repomem-memory validate\` to check entries before committing.
 
 See \`templates/\` for a starting point for each entry type.
 `;
@@ -117,7 +120,7 @@ async function cmdInit(root: string): Promise<number> {
 
 async function cmdValidate(root: string): Promise<number> {
   if (!existsSync(root)) {
-    err(`No memory folder at ${root}. Run \`repomem init\` first.`);
+    err(`No memory folder at ${root}. Run \`repomem-memory init\` first.`);
     return 1;
   }
   const report = await validateRoot(root);
@@ -133,12 +136,13 @@ async function cmdValidate(root: string): Promise<number> {
 function usage(): void {
   out(
     [
-      "repomem — your repo's memory for AI tools",
+      "repomem-memory — your repo's memory for AI tools",
       "",
       "Usage:",
-      "  repomem init [--root <dir>]       Scaffold the memory/ folder and templates",
-      "  repomem validate [--root <dir>]   Validate entries (frontmatter, refs, secrets)",
-      "  repomem setup --agent <name>      Install skills, hooks and MCP config for an agent",
+      "  repomem-memory serve [--root <dir>]      Start the MCP server over stdio (default for agents)",
+      "  repomem-memory init [--root <dir>]       Scaffold the memory/ folder and templates",
+      "  repomem-memory validate [--root <dir>]   Validate entries (frontmatter, refs, secrets)",
+      "  repomem-memory setup --agent <name>      Install skills, hooks and MCP config for an agent",
       "",
       "Root resolution: --root > MEMORY_ROOT env > <git root>/.repomem/memory",
       "setup root resolution: --root > REPOMEM_REPO_ROOT env > <git root>",
@@ -166,6 +170,14 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<numbe
       },
       { out, err },
     );
+  }
+
+  // `serve` starts the MCP server over stdio. This is what agents invoke
+  // through the generated mcp.json. It resolves its own memory root and runs
+  // until the transport closes, so it never returns a non-zero code here.
+  if (command === "serve") {
+    await startServer(argv.slice(1));
+    return 0;
   }
 
   let root: string;

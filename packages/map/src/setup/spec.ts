@@ -20,7 +20,7 @@ export const mapSpec: AgentSetupSpec = {
   serverName: "repomem-map",
   mcpServer: {
     command: "npx",
-    args: ["-y", "repomem-map"],
+    args: ["-y", "--package", "@repomem/map", "repomem-map", "serve"],
     env: {},
     disabled: false,
     autoApprove: ["find_code", "get_module", "request_summaries", "open_graph"],

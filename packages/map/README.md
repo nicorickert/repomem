@@ -41,8 +41,8 @@ Add the server to your MCP client (e.g. Kiro) alongside `repomem`:
 ```json
 {
   "mcpServers": {
-    "repomem":     { "command": "npx", "args": ["-y", "repomem"] },
-    "repomem-map": { "command": "npx", "args": ["-y", "repomem-map", "--root", "."] }
+    "repomem":     { "command": "npx", "args": ["-y", "--package", "@repomem/memory", "repomem-memory", "serve"] },
+    "repomem-map": { "command": "npx", "args": ["-y", "--package", "@repomem/map", "repomem-map", "serve", "--root", "."] }
   }
 }
 ```
@@ -54,15 +54,17 @@ Instead of editing the config by hand, run the one-step setup from your
 repository root:
 
 ```bash
-repomem-map setup --agent kiro
+npx --package @repomem/map repomem-map setup --agent kiro
 ```
 
 It installs a `repomem-map-structure` skill and merges the `repomem-map` server
 into both `.kiro/settings/mcp.json` and the shared `.kiro/agents/repomem.json`
-agent config. The merge is additive, so running it alongside `repomem setup`
+agent config. The merge is additive, so running it alongside the memory setup
 leaves both servers and both skills side by side. It is idempotent and never
 overwrites your existing entries (pass `--force` to replace its own entry).
 Only `kiro` is supported today.
+
+Or configure both repomem servers at once with the installer: `npx @repomem/cli setup`.
 
 ### 2. Initialize the data (ask the agent)
 

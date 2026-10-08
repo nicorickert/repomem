@@ -1,7 +1,7 @@
 {
-  "name": "@repomem/memory",
+  "name": "@repomem/cli",
   "version": "0.1.1",
-  "description": "Your repo's memory, available to every AI tool your team uses. A local MCP server that turns a memory/ folder into searchable shared context.",
+  "description": "One-command installer for repomem: interactively configure the memory and structure-map MCP servers for your AI tool.",
   "license": "MIT",
   "author": "Nicolás Rickert",
   "type": "module",
@@ -9,17 +9,14 @@
     "node": ">=22"
   },
   "bin": {
-    "repomem-memory": "dist/cli.js"
+    "repomem": "dist/cli.js"
   },
   "main": "dist/index.js",
   "exports": {
-    ".": "./dist/index.js",
-    "./setup": "./dist/setup/spec.js"
+    ".": "./dist/index.js"
   },
   "files": [
     "dist",
-    "templates",
-    "assets",
     "README.md",
     "LICENSE"
   ],
@@ -29,40 +26,37 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nicorickert/repomem.git",
-    "directory": "packages/memory"
+    "directory": "packages/installer"
   },
-  "homepage": "https://github.com/nicorickert/repomem/tree/main/packages/memory#readme",
+  "homepage": "https://github.com/nicorickert/repomem/tree/main/packages/installer#readme",
   "bugs": {
     "url": "https://github.com/nicorickert/repomem/issues"
   },
   "keywords": [
     "repomem",
     "mcp",
-    "memory",
+    "installer",
+    "setup",
     "ai",
-    "context",
     "model-context-protocol"
   ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "start": "node dist/cli.js serve",
+    "start": "node dist/cli.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "pretypecheck": "npm run build -w @repomem/core && npm run build -w @repomem/memory && npm run build -w @repomem/map",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@clack/prompts": "1.8.1",
     "@repomem/core": "^0.1.0",
-    "fast-glob": "^3.3.2",
-    "gray-matter": "^4.0.3",
-    "minisearch": "^7.1.0",
-    "picomatch": "^4.0.2",
-    "zod": "^4.6.5"
+    "@repomem/map": "^0.1.0",
+    "@repomem/memory": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@types/picomatch": "^3.0.1",
     "typescript": "^5.6.0",
     "vitest": "^4.1.11"
   }

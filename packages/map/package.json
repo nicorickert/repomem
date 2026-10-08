@@ -1,6 +1,6 @@
 {
   "name": "@repomem/map",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Structure map for repomem. Answers what/where: what each file is about and where a concept lives. Optional companion to @repomem/memory.",
   "license": "MIT",
   "author": "Nicolás Rickert",
@@ -12,6 +12,10 @@
     "repomem-map": "dist/cli.js"
   },
   "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./setup": "./dist/setup/spec.js"
+  },
   "files": [
     "dist",
     "web-dist",

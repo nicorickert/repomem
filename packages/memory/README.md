@@ -3,9 +3,9 @@
 **Your repo's memory, available to every AI tool your team uses.**
 
 > npm package: [`@repomem/memory`](https://www.npmjs.com/package/@repomem/memory) ·
-> CLI command: `repomem` (unchanged for convenience).
+> CLI command: `repomem-memory`.
 
-`repomem` is a local [Model Context Protocol](https://modelcontextprotocol.io)
+`@repomem/memory` is a local [Model Context Protocol](https://modelcontextprotocol.io)
 (MCP) server that turns a `memory/` folder in your repository into searchable,
 shared context for AI assistants. Decisions, conventions, limitations,
 learnings and project context live as reviewable markdown files with structured
@@ -35,10 +35,10 @@ Design principles:
 Scaffold a `memory/` folder in your repo (no install needed, `npx` fetches it):
 
 ```bash
-npx repomem init
+npx --package @repomem/memory repomem-memory init
 ```
 
-Prefer a pinned local install? Add the package (the CLI is still `repomem`):
+Prefer a pinned local install? Add the package (the CLI bin is `repomem-memory`):
 
 ```bash
 npm install -D @repomem/memory
@@ -48,7 +48,7 @@ Register the server with your AI tool (see [MCP client config](#mcp-client-confi
 then ask it to search or propose memory. Before committing, validate:
 
 ```bash
-npx repomem validate
+npx --package @repomem/memory repomem-memory validate
 ```
 
 `validate` exits non-zero on any problem, so it fits in a pre-commit hook or CI.
@@ -108,8 +108,9 @@ transactional guarantees across several tables.
 2. The draft shows up in your working tree as a normal file change.
 3. You review it in the **same pull request** as the related code, edit if
    needed, and flip `status` to `accepted`.
-4. `npx repomem validate` runs in CI to catch malformed entries, dangling
-   `supersedes` references, and accidentally committed secrets.
+4. `npx --package @repomem/memory repomem-memory validate` runs in CI to catch
+   malformed entries, dangling `supersedes` references, and accidentally
+   committed secrets.
 
 Nothing becomes "accepted" memory without a human in the loop.
 
@@ -133,7 +134,7 @@ The server re-checks file modification times before each search, so a
   "mcpServers": {
     "repomem": {
       "command": "npx",
-      "args": ["-y", "repomem"],
+      "args": ["-y", "--package", "@repomem/memory", "repomem-memory", "serve"],
       "env": {},
       "disabled": false,
       "autoApprove": ["search_memory", "get_memory", "memory_for_path"]
@@ -145,8 +146,10 @@ The server re-checks file modification times before each search, so a
 Instead of writing this by hand, run the one-step setup:
 
 ```bash
-repomem setup --agent kiro        # from your repository root
+npx --package @repomem/memory repomem-memory setup --agent kiro   # from your repository root
 ```
+
+Or configure both repomem servers at once with the installer: `npx @repomem/cli setup`.
 
 It installs a `repomem-memory` skill (how to record and recall memory), a
 `repomem-distill` skill (how to distill a finished plan into durable entries as
@@ -163,7 +166,7 @@ supported today.
   "mcpServers": {
     "repomem": {
       "command": "npx",
-      "args": ["-y", "repomem"]
+      "args": ["-y", "--package", "@repomem/memory", "repomem-memory", "serve"]
     }
   }
 }
@@ -176,9 +179,10 @@ runs in. To point at a specific folder, add `"--root", "/path/to/memory"` to
 ## CLI
 
 ```bash
-repomem init [--root <dir>]       # scaffold memory/ with templates and a README
-repomem validate [--root <dir>]   # validate frontmatter, supersedes refs, and scan for secrets
-repomem setup --agent kiro        # install skills, hooks and MCP config for an agent
+repomem-memory serve [--root <dir>]      # start the MCP server over stdio (what agents invoke)
+repomem-memory init [--root <dir>]       # scaffold memory/ with templates and a README
+repomem-memory validate [--root <dir>]   # validate frontmatter, supersedes refs, and scan for secrets
+repomem-memory setup --agent kiro        # install skills, hooks and MCP config for an agent
 ```
 
 `validate` returns a non-zero exit code on any error, for use in pre-commit and CI.

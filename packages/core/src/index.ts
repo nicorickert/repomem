@@ -34,6 +34,7 @@ export {
 
 export {
   runSetup,
+  runSetupMany,
   SUPPORTED_AGENTS,
   type SupportedAgent,
   type SetupArgs,

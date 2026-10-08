@@ -39,16 +39,36 @@ jobs:
       - name: Test
         run: npm test
 
-      # Publish in dependency order: core -> memory -> map.
+      # Publish in dependency order: core -> memory -> map -> cli.
+      #
+      # Each package is published only when the version in its package.json is
+      # not already on npm. This makes releases per-package: bump just the
+      # package(s) you changed, push a `v*` tag, and the workflow publishes only
+      # those — packages whose version already exists are skipped (npm never
+      # lets you republish an existing version). The fixed order means that when
+      # several change together, dependencies go out before their dependents.
+      #
       # Authentication is tokenless via npm trusted publishing (configured per
       # package on npmjs.com against this repo + workflow). No NPM_TOKEN secret.
       # --access public is required for scoped packages; provenance is attached
       # automatically under trusted publishing.
-      - name: Publish @repomem/core
-        run: npm publish -w @repomem/core --access public
-
-      - name: Publish @repomem/memory
-        run: npm publish -w @repomem/memory --access public
-
-      - name: Publish @repomem/map
-        run: npm publish -w @repomem/map --access public
+      - name: Publish changed packages
+        run: |
+          set -euo pipefail
+          publish_if_new() {
+            local dir="$1"
+            local name version
+            name="$(node -p "require('./packages/${dir}/package.json').name")"
+            version="$(node -p "require('./packages/${dir}/package.json').version")"
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "✓ ${name}@${version} already published — skipping."
+            else
+              echo "→ Publishing ${name}@${version}…"
+              npm publish -w "${name}" --access public
+            fi
+          }
+          # Dependency order: core -> memory -> map -> cli.
+          publish_if_new core
+          publish_if_new memory
+          publish_if_new map
+          publish_if_new installer
