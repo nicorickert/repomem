@@ -139,7 +139,15 @@ function isInvokedDirectly(): boolean {
 
 if (isInvokedDirectly()) {
   run()
-    .then((code) => process.exit(code))
+    .then((code) => {
+      // `serve` resolves `run()` right after connecting the stdio transport
+      // while the server keeps running. Calling process.exit(0) here would
+      // kill the process before it answers the client's `initialize`, which
+      // the client reports as "connection closed: initialize response".
+      // Only exit on a non-zero code (as the map CLI does); otherwise let the
+      // event loop keep the server alive until the transport closes.
+      if (code !== 0) process.exit(code);
+    })
     .catch((e: unknown) => {
       err(`fatal: ${(e as Error).message}`);
       process.exit(1);
