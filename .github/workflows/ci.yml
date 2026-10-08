@@ -35,4 +35,4 @@ jobs:
         run: npm test
 
       - name: Validate example memory (frontmatter, refs, secrets)
-        run: node packages/repomem/dist/cli.js validate --root packages/repomem/memory-example
+        run: node packages/memory/dist/cli.js validate --root packages/memory/memory-example

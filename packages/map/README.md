@@ -1,6 +1,9 @@
-# repomem-map
+# @repomem/map
 
-> Status: MVP. Structure map for [repomem](../repomem). It answers **"what and
+> npm package: [`@repomem/map`](https://www.npmjs.com/package/@repomem/map) ·
+> CLI command: `repomem-map` (unchanged for convenience).
+
+> Status: MVP. Structure map for [`@repomem/memory`](../memory). It answers **"what and
 > where"**: what each file is about and where a concept lives. It is an optional
 > companion to the `repomem` memory server.
 

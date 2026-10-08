@@ -1,5 +1,5 @@
 {
-  "name": "repomem",
+  "name": "@repomem/memory",
   "version": "0.1.0",
   "description": "Your repo's memory, available to every AI tool your team uses. A local MCP server that turns a memory/ folder into searchable shared context.",
   "license": "MIT",
@@ -13,8 +13,7 @@
   },
   "main": "dist/index.js",
   "exports": {
-    ".": "./dist/index.js",
-    "./setup": "./dist/setup/index.js"
+    ".": "./dist/index.js"
   },
   "files": [
     "dist",
@@ -22,6 +21,26 @@
     "assets",
     "README.md",
     "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nicorickert/repomem.git",
+    "directory": "packages/memory"
+  },
+  "homepage": "https://github.com/nicorickert/repomem/tree/main/packages/memory#readme",
+  "bugs": {
+    "url": "https://github.com/nicorickert/repomem/issues"
+  },
+  "keywords": [
+    "repomem",
+    "mcp",
+    "memory",
+    "ai",
+    "context",
+    "model-context-protocol"
   ],
   "scripts": {
     "build": "tsc",
@@ -33,6 +52,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.0",
+    "@repomem/core": "^0.1.0",
     "fast-glob": "^3.3.2",
     "gray-matter": "^4.0.3",
     "minisearch": "^7.1.0",

@@ -1,11 +1,10 @@
 {
-  "name": "repomem-map",
-  "version": "0.0.0",
-  "description": "Structure map for repomem. Answers what/where: what each file is about and where a concept lives. Optional companion to repomem.",
+  "name": "@repomem/map",
+  "version": "0.1.0",
+  "description": "Structure map for repomem. Answers what/where: what each file is about and where a concept lives. Optional companion to @repomem/memory.",
   "license": "MIT",
   "author": "Nicolás Rickert",
   "type": "module",
-  "private": true,
   "engines": {
     "node": ">=22"
   },
@@ -21,6 +20,26 @@
     "README.md",
     "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nicorickert/repomem.git",
+    "directory": "packages/map"
+  },
+  "homepage": "https://github.com/nicorickert/repomem/tree/main/packages/map#readme",
+  "bugs": {
+    "url": "https://github.com/nicorickert/repomem/issues"
+  },
+  "keywords": [
+    "repomem",
+    "mcp",
+    "structure",
+    "dependency-graph",
+    "ai",
+    "model-context-protocol"
+  ],
   "scripts": {
     "build": "tsc && npm run build:web",
     "build:web": "vite build --config web/vite.config.ts",
@@ -28,14 +47,14 @@
     "start": "node dist/cli.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "pretypecheck": "npm run build -w repomem",
+    "pretypecheck": "npm run build -w @repomem/core",
     "typecheck": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.0",
+    "@repomem/core": "^0.1.0",
     "fast-glob": "^3.3.2",
     "minisearch": "^7.1.0",
-    "repomem": "^0.1.0",
     "typescript": "^5.6.0",
     "zod": "^4.6.5"
   },
