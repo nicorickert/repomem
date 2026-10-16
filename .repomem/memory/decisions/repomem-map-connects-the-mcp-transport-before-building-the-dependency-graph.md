@@ -1,7 +1,7 @@
 ---
 type: decision
 title: repomem-map connects the MCP transport before building the dependency graph
-status: draft
+status: accepted
 date: '2026-10-16'
 scope: project
 tags:
