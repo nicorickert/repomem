@@ -7,4 +7,4 @@
 # is informational.
 set -euo pipefail
 
-npx -y repomem validate
+npx -y --package @repomem/memory repomem-memory validate

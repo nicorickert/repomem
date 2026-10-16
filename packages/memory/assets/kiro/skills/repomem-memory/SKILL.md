@@ -37,5 +37,5 @@ entry `accepted` yourself — leave it as a draft for review.
 - Keep entries focused: one decision/convention/limitation/learning per file.
 - Always set meaningful `related_paths` so `memory_for_path` can surface the
   entry later.
-- Run `repomem validate` before committing — it checks frontmatter, supersedes
+- Run `npx --package @repomem/memory repomem-memory validate` before committing — it checks frontmatter, supersedes
   references, and scans for secrets.

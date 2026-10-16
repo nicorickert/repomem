@@ -35,7 +35,7 @@ npx @repomem/cli setup --agent kiro --servers memory,map # explicit list
 | `--agent <name>` | Target agent. Supported today: `kiro`. |
 | `--servers <list>` | Comma-separated server ids (`memory`, `map`) or `all`. |
 | `--root <dir>` | Repository root to write `.kiro/` into. Defaults to the enclosing git root. |
-| `--force` | Overwrite repomem's own existing entries (never touches foreign keys). |
+| `--force` | Refresh repomem's own entries **and files** (skills, hook scripts, MCP config) to the version you're running. Changed files are listed as `updated`. Foreign servers and your own hooks are never touched. Use it after upgrading to pick up fixes. |
 
 When both `--agent` and `--servers` are provided, the installer runs
 non-interactively. Otherwise it opens an interactive menu.
@@ -51,7 +51,12 @@ writing (idempotently, under the repository root):
 - `.kiro/settings/mcp.json` — the MCP server entries
 
 All writes are additive and non-destructive: existing files are left untouched
-(or merged, for JSON) unless `--force` is set.
+(or merged, for JSON) unless `--force` is set. To bring an existing install up
+to date after upgrading, re-run with `--force`:
+
+```bash
+npx @repomem/cli@latest setup --agent kiro --servers all --force
+```
 
 ## Configuring a single server directly
 

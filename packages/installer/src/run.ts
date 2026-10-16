@@ -42,7 +42,7 @@ function usage(io: SetupIo): void {
       `  --servers   Comma list of: ${SERVER_IDS.join(", ")} — or "all".`,
       `  --agent     One of: ${SUPPORTED_AGENTS.join(", ")}.`,
       "  --root      Repository root (default: enclosing git root).",
-      "  --force     Overwrite repomem's own existing entries.",
+      "  --force     Refresh repomem's own entries and files (skills, hook scripts, MCP config) to the current version.",
       "  --no-init   Skip scaffolding the memory/ folder (memory server only).",
       "",
       "Each server can also be configured on its own with the scoped packages:",

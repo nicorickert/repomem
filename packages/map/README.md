@@ -61,7 +61,8 @@ It installs a `repomem-map-structure` skill and merges the `repomem-map` server
 into both `.kiro/settings/mcp.json` and the shared `.kiro/agents/repomem.json`
 agent config. The merge is additive, so running it alongside the memory setup
 leaves both servers and both skills side by side. It is idempotent and never
-overwrites your existing entries (pass `--force` to replace its own entry).
+overwrites your existing entries (pass `--force` to refresh its own entry and
+skill to the current version).
 Only `kiro` is supported today.
 
 Or configure both repomem servers at once with the installer: `npx @repomem/cli setup`.

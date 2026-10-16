@@ -156,7 +156,8 @@ It installs a `repomem-memory` skill (how to record and recall memory), a
 its final step), an `agentSpawn` validate hook, a shared
 `.kiro/agents/repomem.json` agent config, and merges the server into
 `.kiro/settings/mcp.json`. The command is idempotent and never overwrites your
-existing entries (pass `--force` to replace repomem's own entry). Only `kiro` is
+existing entries (pass `--force` to refresh repomem's own entry, skills and hook
+script to the current version). Only `kiro` is
 supported today.
 
 ### Claude Code — `.mcp.json`

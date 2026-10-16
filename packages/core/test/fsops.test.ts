@@ -73,6 +73,57 @@ describe("copyExecutable", () => {
     expect(report.skipped).toEqual([dest]);
     expect(await fs.readFile(dest, "utf8")).toBe("original");
   });
+
+  it("with overwrite, replaces a differing file, reports it as updated and keeps it executable", async () => {
+    const src = path.join(tmp, "hook.sh");
+    const dest = path.join(tmp, "hook.sh.dest");
+    await fs.writeFile(src, "#!/bin/bash\nnew\n", "utf8");
+    await fs.writeFile(dest, "old", { encoding: "utf8", mode: 0o644 });
+
+    const report = await copyExecutable(src, dest, { overwrite: true });
+
+    expect(report.updated).toEqual([dest]);
+    expect(report.created).toEqual([]);
+    expect(await fs.readFile(dest, "utf8")).toBe("#!/bin/bash\nnew\n");
+    await expect(fs.access(dest, fsConstants.X_OK)).resolves.toBeUndefined();
+  });
+});
+
+describe("copyIfAbsent overwrite option", () => {
+  it("replaces a differing file and reports it as updated", async () => {
+    const src = path.join(tmp, "src.txt");
+    const dest = path.join(tmp, "dest.txt");
+    await fs.writeFile(src, "new", "utf8");
+    await fs.writeFile(dest, "original", "utf8");
+
+    const report = await copyIfAbsent(src, dest, { overwrite: true });
+
+    expect(await fs.readFile(dest, "utf8")).toBe("new");
+    expect(report.updated).toEqual([dest]);
+    expect(report.skipped).toEqual([]);
+  });
+
+  it("leaves an identical file alone and reports it as skipped", async () => {
+    const src = path.join(tmp, "src.txt");
+    const dest = path.join(tmp, "dest.txt");
+    await fs.writeFile(src, "same", "utf8");
+    await fs.writeFile(dest, "same", "utf8");
+
+    const report = await copyIfAbsent(src, dest, { overwrite: true });
+
+    expect(report.skipped).toEqual([dest]);
+    expect(report.updated).toEqual([]);
+  });
+
+  it("still creates a missing file", async () => {
+    const src = path.join(tmp, "src.txt");
+    const dest = path.join(tmp, "n", "dest.txt");
+    await fs.writeFile(src, "x", "utf8");
+
+    const report = await copyIfAbsent(src, dest, { overwrite: true });
+
+    expect(report.created).toEqual([dest]);
+  });
 });
 
 describe("deepMergeAdditive", () => {
@@ -175,8 +226,14 @@ describe("report helpers", () => {
     const b = emptyReport();
     b.skipped.push("s1");
     b.merged.push("m1");
+    b.updated.push("u1");
     const out = mergeReports(a, b);
-    expect(out).toEqual({ created: ["c1"], skipped: ["s1"], merged: ["m1"] });
+    expect(out).toEqual({
+      created: ["c1"],
+      updated: ["u1"],
+      skipped: ["s1"],
+      merged: ["m1"],
+    });
   });
 
   it("ensureDir creates nested directories idempotently", async () => {

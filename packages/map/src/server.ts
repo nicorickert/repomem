@@ -23,7 +23,7 @@ export function registerAllTools(
   server: McpServer,
   root: string,
   index: MapIndex,
-  graph?: DepGraph,
+  graph?: DepGraph | Promise<DepGraph>,
 ): void {
   registerGenerationTools(server, root);
   registerQueryTools(server, index, root, graph);

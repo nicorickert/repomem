@@ -32,6 +32,28 @@ describe("scan", () => {
     );
   });
 
+  it("excludes common dependency, build-output and cache directories at any depth", async () => {
+    const junk = [
+      ".venv/lib/python3.12/site-packages",
+      "venv",
+      "target/debug",
+      "build",
+      ".next/server",
+      "coverage",
+      "__pycache__",
+      "vendor/lib",
+      "packages/app/node_modules/x",
+      "packages/app/out",
+    ];
+    for (const d of junk) {
+      await fs.mkdir(path.join(root, d), { recursive: true });
+      await fs.writeFile(path.join(root, d, "junk.ts"), "export const z = 0;\n");
+      await fs.writeFile(path.join(root, d, "junk.py"), "import os\n");
+    }
+    const files = (await scan(root)).sort();
+    expect(files).toEqual(["README.md", "src/db/client.ts", "src/index.ts"].sort());
+  });
+
   it("returns POSIX-style repo-relative paths (no leading root)", async () => {
     const files = await scan(root);
     for (const f of files) {
