@@ -15,6 +15,7 @@ export {
   mergeReports,
   emptyReport,
   type SetupReport,
+  type CopyOptions,
 } from "./fsops.js";
 
 export { resolveRepoRoot, type ResolveRepoRootOptions } from "./root.js";
