@@ -47,6 +47,76 @@ afterEach(async () => {
   await fs.rm(root, { recursive: true, force: true });
 });
 
+/** A client wired to a graph that is still "building" (a pending promise). */
+async function makeClientWithDeferredGraph(): Promise<{
+  client: Client;
+  resolve: (g: DepGraph) => void;
+  reject: (e: Error) => void;
+}> {
+  const index = await MapIndex.load(root);
+  let resolve!: (g: DepGraph) => void;
+  let reject!: (e: Error) => void;
+  const graph = new Promise<DepGraph>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  graph.catch(() => undefined); // mirror startServer: never an unhandled rejection
+  const server = new McpServer({ name: "repomem-map", version: "0.0.0" });
+  registerQueryTools(server, index, root, graph);
+  const [clientT, serverT] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: "test", version: "0.0.0" });
+  await Promise.all([server.connect(serverT), client.connect(clientT)]);
+  return { client, resolve, reject };
+}
+
+describe("graph still building (background build)", () => {
+  it("connects and serves non-graph tools before the graph is ready", async () => {
+    const { client } = await makeClientWithDeferredGraph();
+    const res = (await client.callTool({
+      name: "find_code",
+      arguments: { query: "anything" },
+    })) as ToolCall;
+    expect(res.isError).toBeFalsy();
+    expect(JSON.parse(textOf(res)).count).toBe(0);
+  });
+
+  it("graph tools wait for the graph and then answer", async () => {
+    const { client, resolve } = await makeClientWithDeferredGraph();
+    let settled = false;
+    const call = client
+      .callTool({ name: "get_dependents", arguments: { path: "src/c.ts" } })
+      .then((r) => {
+        settled = true;
+        return r as ToolCall;
+      });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(settled).toBe(false); // still waiting on the graph
+
+    resolve(await DepGraph.build(root));
+    const payload = JSON.parse(textOf(await call));
+    expect(payload.count).toBe(2);
+  });
+
+  it("surfaces a failed graph build as a tool error, and get_module degrades", async () => {
+    const { client, reject } = await makeClientWithDeferredGraph();
+    reject(new Error("boom"));
+
+    const dep = (await client.callTool({
+      name: "get_dependents",
+      arguments: { path: "src/c.ts" },
+    })) as ToolCall;
+    expect(dep.isError).toBe(true);
+    expect(textOf(dep)).toContain("boom");
+
+    const mod = (await client.callTool({
+      name: "get_module",
+      arguments: { path: "src/b.ts" },
+    })) as ToolCall;
+    expect(mod.isError).toBeFalsy();
+    expect(JSON.parse(textOf(mod)).dependencies).toEqual([]);
+  });
+});
+
 describe("get_dependents", () => {
   it("returns the transitive dependents with distances", async () => {
     const client = await makeClient();
