@@ -4,15 +4,17 @@
  * this module performs the idempotent, additive filesystem work.
  *
  * It writes, under the repository root:
- *   - `.kiro/skills/<id>/SKILL.md`   (copied, never overwritten)
- *   - `.kiro/hooks/<name>`           (copied executable, never overwritten)
+ *   - `.kiro/skills/<id>/SKILL.md`   (copied; overwritten only with `force`)
+ *   - `.kiro/hooks/<name>`           (copied executable; overwritten only with `force`)
  *   - `.kiro/agents/repomem.json`    (merged: mcpServers, resources, hooks)
  *   - `.kiro/settings/mcp.json`      (merged: mcpServers)
  *
  * The agent config is shared across packages (a single `repomem` agent that
  * accumulates both servers and both skill sets). All merges are additive and
- * preserve foreign keys; a package only ever touches its own entries unless
- * `force` is set.
+ * preserve foreign keys; a package only ever touches its own entries. With
+ * `force`, repomem's own entries and copied files are refreshed to the current
+ * version (changed files are reported as `updated`); user-authored hooks and
+ * foreign servers are still never removed.
  */
 
 import { promises as fs } from "node:fs";
@@ -122,22 +124,24 @@ function unionStrings(existing: unknown, additions: string[]): string[] {
   return out;
 }
 
-/** Append hooks per trigger without duplicating identical commands. */
+/**
+ * Append hooks per trigger without duplicating identical commands. A hook is
+ * identified by `command` + `matcher`. With `force`, an already-present own hook
+ * is refreshed in place (e.g. an updated timeout); hooks the user added are
+ * never removed or reordered.
+ */
 function mergeHooks(existing: unknown, additions: KiroHooks, force: boolean): Json {
   const base: Json = isPlainObject(existing) ? { ...existing } : {};
   for (const [trigger, hooks] of Object.entries(additions)) {
     if (!Array.isArray(hooks)) continue;
     const current = Array.isArray(base[trigger]) ? (base[trigger] as KiroHook[]) : [];
-    if (force) {
-      base[trigger] = hooks;
-      continue;
-    }
     const merged = [...current];
     for (const h of hooks) {
-      const dup = merged.some(
+      const i = merged.findIndex(
         (e) => e.command === h.command && e.matcher === h.matcher,
       );
-      if (!dup) merged.push(h);
+      if (i === -1) merged.push(h);
+      else if (force) merged[i] = h;
     }
     base[trigger] = merged;
   }
@@ -188,6 +192,7 @@ export async function installForKiro(
         await copyIfAbsent(
           path.join(skill.srcDir, entry.name),
           path.join(destDir, entry.name),
+          { overwrite: force },
         ),
       );
     }
@@ -199,7 +204,9 @@ export async function installForKiro(
   for (const hook of spec.hookScripts ?? []) {
     mergeReports(
       report,
-      await copyExecutable(hook.srcPath, path.join(hooksDir, hook.name)),
+      await copyExecutable(hook.srcPath, path.join(hooksDir, hook.name), {
+        overwrite: force,
+      }),
     );
   }
 

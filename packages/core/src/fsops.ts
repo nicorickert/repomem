@@ -14,23 +14,27 @@ import path from "node:path";
 /**
  * Aggregable record of what a setup operation touched. Paths are absolute.
  * - `created`: a new file/dir was written that did not exist before.
+ * - `updated`: an existing file was overwritten because its content differed
+ *   (only ever happens when the caller opts in with `overwrite`/`force`).
  * - `skipped`: an existing file was left untouched.
  * - `merged`:  an existing JSON file was updated in place (keys added/changed).
  */
 export interface SetupReport {
   created: string[];
+  updated: string[];
   skipped: string[];
   merged: string[];
 }
 
 /** A fresh, empty report. */
 export function emptyReport(): SetupReport {
-  return { created: [], skipped: [], merged: [] };
+  return { created: [], updated: [], skipped: [], merged: [] };
 }
 
 /** Merge `b` into `a` in place and return `a`. */
 export function mergeReports(a: SetupReport, b: SetupReport): SetupReport {
   a.created.push(...b.created);
+  a.updated.push(...b.updated);
   a.skipped.push(...b.skipped);
   a.merged.push(...b.merged);
   return a;
@@ -41,13 +45,37 @@ export async function ensureDir(dir: string): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
 }
 
+/** Options shared by the file-copy helpers. */
+export interface CopyOptions {
+  /**
+   * Replace an existing destination when its content differs from the source.
+   * An identical destination is still reported as skipped. Default: false.
+   */
+  overwrite?: boolean;
+}
+
 /**
  * Copy `src` to `dest` only when `dest` does not exist. Creates parent
  * directories as needed. Records the outcome in the returned report.
+ *
+ * With `overwrite`, an existing `dest` whose content differs from `src` is
+ * replaced and reported as `updated`; an identical one is left alone (`skipped`).
  */
-export async function copyIfAbsent(src: string, dest: string): Promise<SetupReport> {
+export async function copyIfAbsent(
+  src: string,
+  dest: string,
+  options: CopyOptions = {},
+): Promise<SetupReport> {
   const report = emptyReport();
   if (existsSync(dest)) {
+    if (options.overwrite) {
+      const [a, b] = await Promise.all([fs.readFile(src), fs.readFile(dest)]);
+      if (!a.equals(b)) {
+        await fs.copyFile(src, dest);
+        report.updated.push(dest);
+        return report;
+      }
+    }
     report.skipped.push(dest);
     return report;
   }
@@ -59,11 +87,16 @@ export async function copyIfAbsent(src: string, dest: string): Promise<SetupRepo
 
 /**
  * Like {@link copyIfAbsent} but marks the destination executable (chmod 0o755)
- * when it is created. Used for hook scripts dropped into `.kiro/hooks/`.
+ * when it is created or updated. Used for hook scripts dropped into
+ * `.kiro/hooks/`.
  */
-export async function copyExecutable(src: string, dest: string): Promise<SetupReport> {
-  const report = await copyIfAbsent(src, dest);
-  if (report.created.includes(dest)) {
+export async function copyExecutable(
+  src: string,
+  dest: string,
+  options: CopyOptions = {},
+): Promise<SetupReport> {
+  const report = await copyIfAbsent(src, dest, options);
+  if (report.created.includes(dest) || report.updated.includes(dest)) {
     await fs.chmod(dest, 0o755);
   }
   return report;

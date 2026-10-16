@@ -149,4 +149,76 @@ describe("installForKiro", () => {
     const agent2 = await readJson(kiro("agents", "repomem.json"));
     expect(agent2.hooks.agentSpawn).toHaveLength(1);
   });
+
+  describe("force refreshes repomem's own files", () => {
+    async function specWithHook(script: string): Promise<AgentSetupSpec> {
+      const spec = await repomemSpec();
+      const scriptPath = path.join(assetRoot, "validate.sh");
+      await fs.writeFile(scriptPath, script, "utf8");
+      spec.hookScripts = [{ name: "repomem-validate.sh", srcPath: scriptPath }];
+      spec.agentHooks = { agentSpawn: [{ command: ".kiro/hooks/repomem-validate.sh" }] };
+      return spec;
+    }
+
+    it("leaves existing skills and hook scripts alone without force", async () => {
+      await installForKiro(await specWithHook("#!/bin/bash\nv1\n"), repoRoot);
+      const report = await installForKiro(await specWithHook("#!/bin/bash\nv2\n"), repoRoot);
+
+      expect(await fs.readFile(kiro("hooks", "repomem-validate.sh"), "utf8")).toBe("#!/bin/bash\nv1\n");
+      expect(report.updated).toEqual([]);
+    });
+
+    it("overwrites changed skills and hook scripts with force and reports them as updated", async () => {
+      await installForKiro(await specWithHook("#!/bin/bash\nv1\n"), repoRoot);
+      await fs.writeFile(kiro("skills", "repomem-memory", "SKILL.md"), "stale", "utf8");
+
+      const report = await installForKiro(await specWithHook("#!/bin/bash\nv2\n"), repoRoot, {
+        force: true,
+      });
+
+      expect(await fs.readFile(kiro("hooks", "repomem-validate.sh"), "utf8")).toBe("#!/bin/bash\nv2\n");
+      expect(await fs.readFile(kiro("skills", "repomem-memory", "SKILL.md"), "utf8")).toContain("Body.");
+      expect(report.updated).toContain(kiro("hooks", "repomem-validate.sh"));
+      expect(report.updated).toContain(kiro("skills", "repomem-memory", "SKILL.md"));
+    });
+
+    it("reports nothing as updated when force finds files already current", async () => {
+      const spec = await specWithHook("#!/bin/bash\nv1\n");
+      await installForKiro(spec, repoRoot);
+      const report = await installForKiro(spec, repoRoot, { force: true });
+      expect(report.updated).toEqual([]);
+    });
+
+    it("never removes a user's own hooks, even with force", async () => {
+      const spec = await specWithHook("#!/bin/bash\nv1\n");
+      await installForKiro(spec, repoRoot);
+      const agentPath = kiro("agents", "repomem.json");
+      const agent = await readJson(agentPath);
+      agent.hooks.agentSpawn.push({ command: "echo mine" });
+      agent.hooks.stop = [{ command: "echo bye" }];
+      await fs.writeFile(agentPath, JSON.stringify(agent, null, 2), "utf8");
+
+      await installForKiro(spec, repoRoot, { force: true });
+
+      const after = await readJson(agentPath);
+      const commands = after.hooks.agentSpawn.map((h: { command: string }) => h.command);
+      expect(commands).toEqual([".kiro/hooks/repomem-validate.sh", "echo mine"]);
+      expect(after.hooks.stop).toEqual([{ command: "echo bye" }]);
+    });
+
+    it("refreshes an own hook's settings in place with force", async () => {
+      const spec = await specWithHook("#!/bin/bash\nv1\n");
+      await installForKiro(spec, repoRoot);
+      spec.agentHooks = {
+        agentSpawn: [{ command: ".kiro/hooks/repomem-validate.sh", timeout_ms: 5000 }],
+      };
+
+      await installForKiro(spec, repoRoot, { force: true });
+
+      const agent = await readJson(kiro("agents", "repomem.json"));
+      expect(agent.hooks.agentSpawn).toEqual([
+        { command: ".kiro/hooks/repomem-validate.sh", timeout_ms: 5000 },
+      ]);
+    });
+  });
 });

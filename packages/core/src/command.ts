@@ -27,6 +27,9 @@ function printReport(report: SetupReport, io: SetupIo): void {
   if (report.created.length) {
     io.out(`  created:\n${report.created.map((c) => `    + ${c}`).join("\n")}`);
   }
+  if (report.updated.length) {
+    io.out(`  updated (overwritten with the current version):\n${report.updated.map((c) => `    * ${c}`).join("\n")}`);
+  }
   if (report.merged.length) {
     io.out(`  merged:\n${report.merged.map((c) => `    ~ ${c}`).join("\n")}`);
   }
