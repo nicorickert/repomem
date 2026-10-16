@@ -46,7 +46,7 @@ needed" is a valid outcome — do not invent memory.
 3. Keep each entry focused: one decision/learning/limitation/context per file.
 4. **Never** mark an entry `accepted` yourself. Every entry is a `draft` for a
    human to review and accept in the same pull request as the code.
-5. Remind the user to run `repomem validate` before committing.
+5. Remind the user to run `npx --package @repomem/memory repomem-memory validate` before committing.
 
 ## Guidelines
 
