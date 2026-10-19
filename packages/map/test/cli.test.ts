@@ -87,6 +87,17 @@ describe("repomem-map setup", () => {
     expect(await run(["setup", "--agent", "vim", "--root", tmp])).toBe(1);
   });
 
+  it("auto-approves the read-only tools the protocol asks agents to call before every change", async () => {
+    // A permission prompt on every blast-radius check would push agents to skip it.
+    await run(["setup", "--agent", "kiro", "--root", tmp]);
+    const mcp = await readJson(kiro("settings", "mcp.json"));
+    expect(mcp.mcpServers["repomem-map"].autoApprove).toEqual(
+      expect.arrayContaining(["find_code", "get_module", "get_dependents", "get_dependencies"]),
+    );
+    // Writing a summary stays behind a prompt.
+    expect(mcp.mcpServers["repomem-map"].autoApprove).not.toContain("save_summary");
+  });
+
   it("coexists additively with repomem setup in the same workspace", async () => {
     // Simulate a prior `repomem setup` having written its own server + skill.
     await fs.mkdir(kiro("settings"), { recursive: true });
