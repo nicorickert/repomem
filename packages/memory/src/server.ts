@@ -14,6 +14,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import * as z from "zod";
 import { entryTypeSchema, type MemoryEntry } from "./schema.js";
 import type { MemoryIndex } from "./search.js";
+import { MEMORY_INSTRUCTIONS } from "./instructions.js";
 import {
   proposeEntry,
   deprecateEntry,
@@ -46,6 +47,15 @@ function summarize(entry: MemoryEntry) {
 export const SERVER_INFO = {
   name: "repomem-memory",
   version: "0.1.0",
+} as const;
+
+/**
+ * Options for `new McpServer(SERVER_INFO, SERVER_OPTIONS)`. `instructions` is
+ * delivered on `initialize` so any MCP client can put the protocol in the
+ * model's context without loading skills, hooks or a custom agent.
+ */
+export const SERVER_OPTIONS = {
+  instructions: MEMORY_INSTRUCTIONS,
 } as const;
 
 /** Register the read-only memory tools, backed by `index`. */
