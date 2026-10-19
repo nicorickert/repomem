@@ -10,7 +10,7 @@ import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolveMemoryRoot } from "./store.js";
 import { MemoryIndex } from "./search.js";
-import { registerAllTools, SERVER_INFO } from "./server.js";
+import { registerAllTools, SERVER_INFO, SERVER_OPTIONS } from "./server.js";
 
 function log(message: string): void {
   process.stderr.write(`[repomem-memory] ${message}\n`);
@@ -28,7 +28,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   log(`memory root: ${root}`);
 
   const index = new MemoryIndex(root);
-  const server = new McpServer(SERVER_INFO);
+  const server = new McpServer(SERVER_INFO, SERVER_OPTIONS);
   registerAllTools(server, root, index);
 
   const transport = new StdioServerTransport();

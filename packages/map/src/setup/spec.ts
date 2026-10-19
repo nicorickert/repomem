@@ -23,7 +23,14 @@ export const mapSpec: AgentSetupSpec = {
     args: ["-y", "--package", "@repomem/map", "repomem-map", "serve"],
     env: {},
     disabled: false,
-    autoApprove: ["find_code", "get_module", "request_summaries", "open_graph"],
+    autoApprove: [
+      "find_code",
+      "get_module",
+      "get_dependents",
+      "get_dependencies",
+      "request_summaries",
+      "open_graph",
+    ],
   },
   skills: [
     {

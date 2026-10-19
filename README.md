@@ -18,7 +18,7 @@ installer that wires them into your AI tool in one command.
 | Package | npm | CLI | What it does |
 |---|---|---|---|
 | [`@repomem/cli`](packages/installer/README.md) | [`@repomem/cli`](https://www.npmjs.com/package/@repomem/cli) | `repomem setup` | One-command installer. Interactively (or via flags) configures the memory and map servers for your agent. |
-| [`@repomem/memory`](packages/memory/README.md) | [`@repomem/memory`](https://www.npmjs.com/package/@repomem/memory) | `repomem-memory` | Turns a `memory/` folder of reviewable markdown entries into searchable, shared context over MCP. |
+| [`@repomem/memory`](packages/memory/README.md) | [`@repomem/memory`](https://www.npmjs.com/package/@repomem/memory) | `repomem-memory` | Turns a `.repomem/memory/` folder of reviewable markdown entries into searchable, shared context over MCP. |
 | [`@repomem/map`](packages/map/README.md) | [`@repomem/map`](https://www.npmjs.com/package/@repomem/map) | `repomem-map` | Structure map and dependency graph: what each file is about and where a concept lives. Optional companion to `@repomem/memory`. |
 | [`@repomem/core`](packages/core/README.md) | [`@repomem/core`](https://www.npmjs.com/package/@repomem/core) | — | Shared setup toolkit (idempotent filesystem helpers + agent installer) used by the two servers. Infrastructure only. |
 
@@ -60,7 +60,7 @@ npx @repomem/cli setup --agent kiro --servers all      # both servers
 npx @repomem/cli setup --agent kiro --servers memory   # just memory
 ```
 
-To scaffold the reviewable `memory/` folder in your repo:
+To scaffold the reviewable `.repomem/memory/` folder in your repo:
 
 ```bash
 npx --package @repomem/memory repomem-memory init
@@ -75,6 +75,17 @@ npx --package @repomem/map    repomem-map    setup --agent kiro
 
 Full configuration and tool reference live in the per-package READMEs linked
 above.
+
+## Making agents follow the protocol
+
+Registering the servers is not enough if the agent never calls them. Both
+servers therefore reinforce the protocol over MCP itself, so it works with a
+generic agent and not only with the `repomem` Kiro agent: each sends
+`instructions` on `initialize` and writes *when to call* into every tool
+description (for example "call this BEFORE you modify a file"). The skills
+installed by `setup` add the longer playbooks. This guides the model; it cannot
+force it, and it depends on your MCP client passing server instructions and tool
+descriptions to the model.
 
 ## Development
 

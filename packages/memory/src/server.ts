@@ -14,6 +14,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import * as z from "zod";
 import { entryTypeSchema, type MemoryEntry } from "./schema.js";
 import type { MemoryIndex } from "./search.js";
+import { MEMORY_INSTRUCTIONS } from "./instructions.js";
 import {
   proposeEntry,
   deprecateEntry,
@@ -48,6 +49,15 @@ export const SERVER_INFO = {
   version: "0.1.0",
 } as const;
 
+/**
+ * Options for `new McpServer(SERVER_INFO, SERVER_OPTIONS)`. `instructions` is
+ * delivered on `initialize` so any MCP client can put the protocol in the
+ * model's context without loading skills, hooks or a custom agent.
+ */
+export const SERVER_OPTIONS = {
+  instructions: MEMORY_INSTRUCTIONS,
+} as const;
+
 /** Register the read-only memory tools, backed by `index`. */
 export function registerReadTools(server: McpServer, index: MemoryIndex): void {
   server.registerTool(
@@ -56,6 +66,9 @@ export function registerReadTools(server: McpServer, index: MemoryIndex): void {
       title: "Search memory",
       description:
         "Search the repository's memory for decisions, conventions, limitations, learnings and context. " +
+        "Call this BEFORE starting any task that changes files: once per main concept of the task " +
+        "(e.g. one search for \"retry policy\", another for \"auth\"), not one search for the whole task. " +
+        "An empty result is a valid answer, not a reason to skip memory. " +
         "Returns short summaries (id, type, title, status, snippet). Deprecated entries are " +
         "excluded by default. Use get_memory with an id to read the full entry.",
       inputSchema: {
@@ -114,6 +127,9 @@ export function registerWriteTools(
       title: "Memory for a path",
       description:
         "Return memory entries whose related_paths globs match the given file path. " +
+        "Call this BEFORE you modify a file, once for each file you are about to change, " +
+        "even if the code feels familiar: it surfaces decisions and limitations that bind that file. " +
+        "If an entry contradicts your plan, tell the user before coding. " +
         "Accepted entries are prioritized over drafts; deprecated entries are excluded.",
       inputSchema: {
         path: z
@@ -142,9 +158,13 @@ export function registerWriteTools(
     {
       title: "Propose a memory entry",
       description:
-        "Propose a new memory entry. It is ALWAYS created as a draft for a human to review " +
-        "and accept in a pull request. Rejects duplicates (a title whose id already exists " +
-        "for that type). Never overwrites existing entries.",
+        "Propose a new memory entry. Call this AFTER you finish a task, once per durable item " +
+        "(a non-obvious decision and the alternative you rejected, a surprise, a constraint, " +
+        "something you could not verify); propose nothing if nothing durable came out of the work. " +
+        "Do not store plans or progress logs. It is ALWAYS created as a draft for a human to review " +
+        "and accept in a pull request; never mark an entry accepted yourself. Set related_paths to " +
+        "globs covering the source file and its test or doc. Rejects duplicates (a title whose id " +
+        "already exists for that type). Never overwrites existing entries.",
       inputSchema: {
         type: entryTypeSchema.describe("decision | convention | limitation | learning | context"),
         title: z.string().min(1).describe("A concise, human-readable title"),
@@ -183,7 +203,9 @@ export function registerWriteTools(
       title: "Deprecate a memory entry",
       description:
         "Mark an existing memory entry as deprecated, recording the reason (and optionally " +
-        "the id of the entry that supersedes it).",
+        "the id of the entry that supersedes it). Use it when your work makes an earlier entry " +
+        "false or obsolete and no replacement is needed; when you are writing a replacement, " +
+        "pass supersedes to propose_memory instead. Do not leave contradicting entries live.",
       inputSchema: {
         id: z.string().min(1).describe("The id of the entry to deprecate"),
         reason: z.string().min(1).describe("Why the entry is being deprecated"),

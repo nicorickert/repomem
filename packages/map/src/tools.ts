@@ -22,7 +22,22 @@ import { loadPrompt } from "./prompt.js";
 import { hashContent, writeSummary, readSummary, type SummaryRecord } from "./summary.js";
 import { isStale, type MapIndex } from "./mapindex.js";
 import type { DepGraph, ImpactDirection } from "./deps/graph.js";
+import { LiveGraph } from "./deps/live.js";
 import { launchViewer } from "./web/launch.js";
+
+/**
+ * Where the dependency tools get their graph from. A `LiveGraph` is the real
+ * server's source (kept current while it runs); a `DepGraph` or a promise of
+ * one is a fixed snapshot, which is what most tests and the CLI use.
+ */
+export type GraphSource = DepGraph | Promise<DepGraph> | LiveGraph;
+
+/** Normalize a {@link GraphSource} to "give me the graph as of now". */
+function graphGetter(source: GraphSource | undefined): (() => Promise<DepGraph>) | undefined {
+  if (!source) return undefined;
+  if (source instanceof LiveGraph) return () => source.current();
+  return () => Promise.resolve(source);
+}
 
 /** Default maximum files returned by request_summaries in one run. */
 export const DEFAULT_CAP = 20;
@@ -43,17 +58,26 @@ export function errorResult(message: string): CallToolResult {
   return { content: [{ type: "text", text: message }], isError: true };
 }
 
-/** Register the in-agent generation tools against a repo `root`. */
-export function registerGenerationTools(server: McpServer, root: string): void {
+/**
+ * Register the in-agent generation tools against a repo `root`. When `index`
+ * is given, `save_summary` also upserts into it so the summary is searchable
+ * immediately, without restarting the server.
+ */
+export function registerGenerationTools(
+  server: McpServer,
+  root: string,
+  index?: MapIndex,
+): void {
   server.registerTool(
     "request_summaries",
     {
       title: "Request pending summaries",
       description:
         "List source files that need a summary (missing or stale) together with " +
-        "the summarization prompt and a per-run cap. The agent should read each " +
-        "file, write a summary following the prompt, and call save_summary. " +
-        "Repeat until no files are pending.",
+        "the summarization prompt and a per-run cap. Call this AFTER you finish " +
+        "changing code, then handle only the files you created or changed (leave " +
+        "unrelated ones): read each file, write a summary following the prompt, and " +
+        "call save_summary. Repeat until none of your files are pending.",
       inputSchema: {
         limit: z
           .number()
@@ -80,9 +104,10 @@ export function registerGenerationTools(server: McpServer, root: string): void {
     {
       title: "Save a file summary",
       description:
-        "Persist a summary for one source file. The hash MUST be the hash " +
-        "returned by request_summaries for that file; it is re-validated against " +
-        "the file's current content and rejected if it no longer matches.",
+        "Persist a summary for one source file. Call it after request_summaries, once " +
+        "per file you changed. The hash MUST be the hash returned by request_summaries " +
+        "for that file; it is re-validated against the file's current content and " +
+        "rejected if it no longer matches.",
       inputSchema: {
         path: z.string().min(1).describe("Repository-relative file path"),
         summary: z.string().min(1).describe("The summary text"),
@@ -117,6 +142,7 @@ export function registerGenerationTools(server: McpServer, root: string): void {
           generated_at: new Date().toISOString(),
         };
         await writeSummary(root, p, record);
+        index?.upsert(p, record);
         return jsonResult({ status: "saved", path: p });
       } catch (err) {
         return errorResult(`save_summary failed: ${(err as Error).message}`);
@@ -135,20 +161,23 @@ export function registerQueryTools(
   server: McpServer,
   index: MapIndex,
   root: string,
-  graphInput?: DepGraph | Promise<DepGraph>,
+  graphInput?: GraphSource,
 ): void {
   // The graph may still be building (it is constructed in the background so the
-  // server can answer `initialize` quickly). Tools await it on use; a failed
-  // build surfaces as a tool error rather than crashing the server.
-  const graph = graphInput;
+  // server can answer `initialize` quickly) or be refreshed lazily as files
+  // change. Tools ask for it on use; a failed build surfaces as a tool error
+  // rather than crashing the server.
+  const getGraph = graphGetter(graphInput);
   server.registerTool(
     "find_code",
     {
       title: "Find code",
       description:
         "Search the map for files whose summary, search terms or path match a " +
-        "query. Returns compact hits (path, summary, score). Use get_module for " +
-        "the full record of a specific path.",
+        "query. Call this before editing unfamiliar code to find where a concept " +
+        "lives. Returns compact hits (path, summary, score); use get_module for the " +
+        "full record of a specific path. An empty result on a young map only means " +
+        "no summaries exist yet, not that the code does not exist: fall back to grep.",
       inputSchema: {
         query: z.string().min(1).describe("What to look for"),
       },
@@ -180,7 +209,7 @@ export function registerQueryTools(
         const record = index.get(p) ?? (await readSummary(root, p));
         // Edges are best-effort here: if the graph failed to build, still
         // return the summary instead of failing the whole call.
-        const g = graph ? await Promise.resolve(graph).catch(() => undefined) : undefined;
+        const g = getGraph ? await getGraph().catch(() => undefined) : undefined;
         const dependencies = g?.dependencies(p) ?? [];
         const dependents = g?.dependents(p) ?? [];
         if (!record) {
@@ -214,8 +243,8 @@ export function registerQueryTools(
   );
 
   // Dependency / blast-radius tools. Registered only when a graph is provided.
-  if (!graph) return;
-  const pendingGraph = graph;
+  if (!getGraph) return;
+  const currentGraph = getGraph;
 
   const impactTool = (
     name: string,
@@ -240,7 +269,7 @@ export function registerQueryTools(
       },
       async ({ path: p, depth }): Promise<CallToolResult> => {
         try {
-          const g = await pendingGraph;
+          const g = await currentGraph();
           if (!g.has(p)) {
             return jsonResult({ found: false, path: p });
           }
@@ -258,9 +287,12 @@ export function registerQueryTools(
     "dependents",
     "Get dependents (blast radius)",
     "List the files that depend on a given file — the blast radius of changing " +
-      "it — with each node's hop distance. Transitive by default; pass depth to " +
-      "limit hops (depth:1 = direct dependents). Derived from the import graph; " +
-      "works without any summaries.",
+      "it — with each node's hop distance. Call this BEFORE you change a shared " +
+      "symbol (a model, interface, public signature or anything other files import), " +
+      "on the file that defines it; those are the files, tests included, to re-check. " +
+      "Transitive by default; pass depth to limit hops (depth:1 = direct dependents). " +
+      "Derived from static imports, so dynamic wiring does not appear; works without " +
+      "any summaries.",
   );
 
   impactTool(
@@ -268,9 +300,10 @@ export function registerQueryTools(
     "dependencies",
     "Get dependencies",
     "List the files a given file depends on (what it imports, transitively) with " +
-      "each node's hop distance. Transitive by default; pass depth to limit hops " +
-      "(depth:1 = direct dependencies). Derived from the import graph; works " +
-      "without any summaries.",
+      "each node's hop distance. Call this before you move, split or change a file " +
+      "to know what it relies on. Transitive by default; pass depth to limit hops " +
+      "(depth:1 = direct dependencies). Derived from static imports; works without " +
+      "any summaries.",
   );
 
   server.registerTool(
@@ -279,10 +312,11 @@ export function registerQueryTools(
       title: "Open the dependency graph viewer",
       description:
         "Start a local web viewer for the dependency graph and return its URL. " +
-        "The viewer renders an interactive force-directed graph to inspect " +
-        "dependencies, blast radius, cycles and hubs at a glance. Derived from " +
-        "the import graph; works without any summaries (summaries, when present, " +
-        "are shown in the side panel).",
+        "This is a viewer only: it does not answer queries (use get_dependents and " +
+        "get_dependencies for that). The viewer renders an interactive force-directed " +
+        "graph to inspect dependencies, blast radius, cycles and hubs at a glance. " +
+        "Derived from the import graph; works without any summaries (summaries, when " +
+        "present, are shown in the side panel).",
       inputSchema: {
         port: z
           .number()
@@ -294,7 +328,7 @@ export function registerQueryTools(
     },
     async ({ port }): Promise<CallToolResult> => {
       try {
-        const g = await pendingGraph;
+        const g = await currentGraph();
         const handle = await launchViewer({ root, graph: g, index, port, openBrowser: true });
         return jsonResult({ status: "started", url: handle.url, port: handle.port });
       } catch (err) {

@@ -6,7 +6,7 @@
 > CLI command: `repomem-memory`.
 
 `@repomem/memory` is a local [Model Context Protocol](https://modelcontextprotocol.io)
-(MCP) server that turns a `memory/` folder in your repository into searchable,
+(MCP) server that turns a `.repomem/memory/` folder in your repository into searchable,
 shared context for AI assistants. Decisions, conventions, limitations,
 learnings and project context live as reviewable markdown files with structured
 frontmatter, versioned with git and shared through normal pull requests. AI
@@ -32,7 +32,7 @@ Design principles:
 
 ## Quick start
 
-Scaffold a `memory/` folder in your repo (no install needed, `npx` fetches it):
+Scaffold the `.repomem/memory/` folder in your repo (no install needed, `npx` fetches it):
 
 ```bash
 npx --package @repomem/memory repomem-memory init
@@ -53,9 +53,28 @@ npx --package @repomem/memory repomem-memory validate
 
 `validate` exits non-zero on any problem, so it fits in a pre-commit hook or CI.
 
+## Getting agents to actually use it
+
+An agent only benefits from memory if it consults it. repomem reinforces the
+protocol at three levels, so it also works with a generic agent that never
+loaded the repomem agent config:
+
+1. **MCP `instructions`** — on `initialize` the server sends a short protocol
+   to the client: call `memory_for_path` for each file and `search_memory` per
+   concept *before* editing, then `propose_memory` (drafts only) and validate
+   when done. Clients that surface server instructions put this in the model's
+   context. Not every client does; check yours.
+2. **Tool descriptions** — each tool says *when* to call it ("call this BEFORE
+   you modify a file"), because descriptions are shown to the model by every
+   MCP client.
+3. **Skills** (`repomem setup`) — the longer `repomem-memory` and
+   `repomem-distill` playbooks, installed under `.kiro/skills/`.
+
+This is guidance, not enforcement: nothing forces a model to call a tool.
+
 ## Entry format
 
-Entries live at `memory/<type>s/<slug>.md`. The `id` of an entry is its file
+Entries live at `.repomem/memory/<type>s/<slug>.md`. The `id` of an entry is its file
 slug. Each file starts with YAML frontmatter:
 
 ```markdown
@@ -181,7 +200,7 @@ runs in. To point at a specific folder, add `"--root", "/path/to/memory"` to
 
 ```bash
 repomem-memory serve [--root <dir>]      # start the MCP server over stdio (what agents invoke)
-repomem-memory init [--root <dir>]       # scaffold memory/ with templates and a README
+repomem-memory init [--root <dir>]       # scaffold .repomem/memory/ with templates and a README
 repomem-memory validate [--root <dir>]   # validate frontmatter, supersedes refs, and scan for secrets
 repomem-memory setup --agent kiro        # install skills, hooks and MCP config for an agent
 ```
