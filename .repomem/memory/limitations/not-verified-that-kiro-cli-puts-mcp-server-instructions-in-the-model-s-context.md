@@ -1,7 +1,7 @@
 ---
 type: limitation
 title: Not verified that Kiro CLI puts MCP server instructions in the model's context
-status: draft
+status: accepted
 date: '2026-10-19'
 scope: project
 tags:
