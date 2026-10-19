@@ -12,10 +12,20 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { MapIndex } from "./mapindex.js";
 import type { DepGraph } from "./deps/graph.js";
 import { registerGenerationTools, registerQueryTools } from "./tools.js";
+import { MAP_INSTRUCTIONS } from "./instructions.js";
 
 export const SERVER_INFO = {
   name: "repomem-map",
   version: "0.1.0",
+} as const;
+
+/**
+ * Options for `new McpServer(SERVER_INFO, SERVER_OPTIONS)`. `instructions` is
+ * delivered on `initialize` so any MCP client can put the protocol in the
+ * model's context without loading skills, hooks or a custom agent.
+ */
+export const SERVER_OPTIONS = {
+  instructions: MAP_INSTRUCTIONS,
 } as const;
 
 /** Register every map tool on the server. */

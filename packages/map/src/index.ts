@@ -10,7 +10,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { MapIndex } from "./mapindex.js";
 import { DepGraph } from "./deps/graph.js";
-import { registerAllTools, SERVER_INFO } from "./server.js";
+import { registerAllTools, SERVER_INFO, SERVER_OPTIONS } from "./server.js";
 
 function log(message: string): void {
   process.stderr.write(`[repomem-map] ${message}\n`);
@@ -36,7 +36,7 @@ export async function startServer(root: string): Promise<void> {
     (e: unknown) => log(`dependency graph failed: ${(e as Error).message}`),
   );
 
-  const server = new McpServer(SERVER_INFO);
+  const server = new McpServer(SERVER_INFO, SERVER_OPTIONS);
   registerAllTools(server, root, index, graph);
 
   const transport = new StdioServerTransport();

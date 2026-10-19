@@ -51,9 +51,10 @@ export function registerGenerationTools(server: McpServer, root: string): void {
       title: "Request pending summaries",
       description:
         "List source files that need a summary (missing or stale) together with " +
-        "the summarization prompt and a per-run cap. The agent should read each " +
-        "file, write a summary following the prompt, and call save_summary. " +
-        "Repeat until no files are pending.",
+        "the summarization prompt and a per-run cap. Call this AFTER you finish " +
+        "changing code, then handle only the files you created or changed (leave " +
+        "unrelated ones): read each file, write a summary following the prompt, and " +
+        "call save_summary. Repeat until none of your files are pending.",
       inputSchema: {
         limit: z
           .number()
@@ -80,9 +81,10 @@ export function registerGenerationTools(server: McpServer, root: string): void {
     {
       title: "Save a file summary",
       description:
-        "Persist a summary for one source file. The hash MUST be the hash " +
-        "returned by request_summaries for that file; it is re-validated against " +
-        "the file's current content and rejected if it no longer matches.",
+        "Persist a summary for one source file. Call it after request_summaries, once " +
+        "per file you changed. The hash MUST be the hash returned by request_summaries " +
+        "for that file; it is re-validated against the file's current content and " +
+        "rejected if it no longer matches.",
       inputSchema: {
         path: z.string().min(1).describe("Repository-relative file path"),
         summary: z.string().min(1).describe("The summary text"),
@@ -147,8 +149,10 @@ export function registerQueryTools(
       title: "Find code",
       description:
         "Search the map for files whose summary, search terms or path match a " +
-        "query. Returns compact hits (path, summary, score). Use get_module for " +
-        "the full record of a specific path.",
+        "query. Call this before editing unfamiliar code to find where a concept " +
+        "lives. Returns compact hits (path, summary, score); use get_module for the " +
+        "full record of a specific path. An empty result on a young map only means " +
+        "no summaries exist yet, not that the code does not exist: fall back to grep.",
       inputSchema: {
         query: z.string().min(1).describe("What to look for"),
       },
@@ -258,9 +262,12 @@ export function registerQueryTools(
     "dependents",
     "Get dependents (blast radius)",
     "List the files that depend on a given file — the blast radius of changing " +
-      "it — with each node's hop distance. Transitive by default; pass depth to " +
-      "limit hops (depth:1 = direct dependents). Derived from the import graph; " +
-      "works without any summaries.",
+      "it — with each node's hop distance. Call this BEFORE you change a shared " +
+      "symbol (a model, interface, public signature or anything other files import), " +
+      "on the file that defines it; those are the files, tests included, to re-check. " +
+      "Transitive by default; pass depth to limit hops (depth:1 = direct dependents). " +
+      "Derived from static imports, so dynamic wiring does not appear; works without " +
+      "any summaries.",
   );
 
   impactTool(
@@ -268,9 +275,10 @@ export function registerQueryTools(
     "dependencies",
     "Get dependencies",
     "List the files a given file depends on (what it imports, transitively) with " +
-      "each node's hop distance. Transitive by default; pass depth to limit hops " +
-      "(depth:1 = direct dependencies). Derived from the import graph; works " +
-      "without any summaries.",
+      "each node's hop distance. Call this before you move, split or change a file " +
+      "to know what it relies on. Transitive by default; pass depth to limit hops " +
+      "(depth:1 = direct dependencies). Derived from static imports; works without " +
+      "any summaries.",
   );
 
   server.registerTool(
@@ -279,10 +287,11 @@ export function registerQueryTools(
       title: "Open the dependency graph viewer",
       description:
         "Start a local web viewer for the dependency graph and return its URL. " +
-        "The viewer renders an interactive force-directed graph to inspect " +
-        "dependencies, blast radius, cycles and hubs at a glance. Derived from " +
-        "the import graph; works without any summaries (summaries, when present, " +
-        "are shown in the side panel).",
+        "This is a viewer only: it does not answer queries (use get_dependents and " +
+        "get_dependencies for that). The viewer renders an interactive force-directed " +
+        "graph to inspect dependencies, blast radius, cycles and hubs at a glance. " +
+        "Derived from the import graph; works without any summaries (summaries, when " +
+        "present, are shown in the side panel).",
       inputSchema: {
         port: z
           .number()
