@@ -1,7 +1,7 @@
 ---
 type: convention
 title: 'Shipped skills must match the real MCP tools, and a drift test enforces it'
-status: draft
+status: accepted
 date: '2026-10-19'
 scope: project
 tags:
