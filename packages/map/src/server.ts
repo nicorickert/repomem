@@ -10,8 +10,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { MapIndex } from "./mapindex.js";
-import type { DepGraph } from "./deps/graph.js";
-import { registerGenerationTools, registerQueryTools } from "./tools.js";
+import { registerGenerationTools, registerQueryTools, type GraphSource } from "./tools.js";
 import { MAP_INSTRUCTIONS } from "./instructions.js";
 
 export const SERVER_INFO = {
@@ -33,7 +32,7 @@ export function registerAllTools(
   server: McpServer,
   root: string,
   index: MapIndex,
-  graph?: DepGraph | Promise<DepGraph>,
+  graph?: GraphSource,
 ): void {
   registerGenerationTools(server, root, index);
   registerQueryTools(server, index, root, graph);

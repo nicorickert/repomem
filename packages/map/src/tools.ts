@@ -22,7 +22,22 @@ import { loadPrompt } from "./prompt.js";
 import { hashContent, writeSummary, readSummary, type SummaryRecord } from "./summary.js";
 import { isStale, type MapIndex } from "./mapindex.js";
 import type { DepGraph, ImpactDirection } from "./deps/graph.js";
+import { LiveGraph } from "./deps/live.js";
 import { launchViewer } from "./web/launch.js";
+
+/**
+ * Where the dependency tools get their graph from. A `LiveGraph` is the real
+ * server's source (kept current while it runs); a `DepGraph` or a promise of
+ * one is a fixed snapshot, which is what most tests and the CLI use.
+ */
+export type GraphSource = DepGraph | Promise<DepGraph> | LiveGraph;
+
+/** Normalize a {@link GraphSource} to "give me the graph as of now". */
+function graphGetter(source: GraphSource | undefined): (() => Promise<DepGraph>) | undefined {
+  if (!source) return undefined;
+  if (source instanceof LiveGraph) return () => source.current();
+  return () => Promise.resolve(source);
+}
 
 /** Default maximum files returned by request_summaries in one run. */
 export const DEFAULT_CAP = 20;
@@ -146,12 +161,13 @@ export function registerQueryTools(
   server: McpServer,
   index: MapIndex,
   root: string,
-  graphInput?: DepGraph | Promise<DepGraph>,
+  graphInput?: GraphSource,
 ): void {
   // The graph may still be building (it is constructed in the background so the
-  // server can answer `initialize` quickly). Tools await it on use; a failed
-  // build surfaces as a tool error rather than crashing the server.
-  const graph = graphInput;
+  // server can answer `initialize` quickly) or be refreshed lazily as files
+  // change. Tools ask for it on use; a failed build surfaces as a tool error
+  // rather than crashing the server.
+  const getGraph = graphGetter(graphInput);
   server.registerTool(
     "find_code",
     {
@@ -193,7 +209,7 @@ export function registerQueryTools(
         const record = index.get(p) ?? (await readSummary(root, p));
         // Edges are best-effort here: if the graph failed to build, still
         // return the summary instead of failing the whole call.
-        const g = graph ? await Promise.resolve(graph).catch(() => undefined) : undefined;
+        const g = getGraph ? await getGraph().catch(() => undefined) : undefined;
         const dependencies = g?.dependencies(p) ?? [];
         const dependents = g?.dependents(p) ?? [];
         if (!record) {
@@ -227,8 +243,8 @@ export function registerQueryTools(
   );
 
   // Dependency / blast-radius tools. Registered only when a graph is provided.
-  if (!graph) return;
-  const pendingGraph = graph;
+  if (!getGraph) return;
+  const currentGraph = getGraph;
 
   const impactTool = (
     name: string,
@@ -253,7 +269,7 @@ export function registerQueryTools(
       },
       async ({ path: p, depth }): Promise<CallToolResult> => {
         try {
-          const g = await pendingGraph;
+          const g = await currentGraph();
           if (!g.has(p)) {
             return jsonResult({ found: false, path: p });
           }
@@ -312,7 +328,7 @@ export function registerQueryTools(
     },
     async ({ port }): Promise<CallToolResult> => {
       try {
-        const g = await pendingGraph;
+        const g = await currentGraph();
         const handle = await launchViewer({ root, graph: g, index, port, openBrowser: true });
         return jsonResult({ status: "started", url: handle.url, port: handle.port });
       } catch (err) {
