@@ -3,7 +3,7 @@ type: decision
 title: >-
   The protocol is enforced over MCP (instructions + tool descriptions), not
   through the repomem agent config
-status: draft
+status: accepted
 date: '2026-10-19'
 scope: project
 tags:
