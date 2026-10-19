@@ -77,4 +77,22 @@ export class MapIndex {
   get(codePath: string): SummaryRecord | null {
     return this.records.get(codePath) ?? null;
   }
+
+  /**
+   * Insert or replace the summary for `codePath` in memory. Called by
+   * `save_summary` right after it persists the record, so `find_code` and
+   * `get_module` reflect it in the same session instead of only after a restart.
+   * Does not touch disk.
+   */
+  upsert(codePath: string, record: SummaryRecord): void {
+    const doc: IndexedDoc = {
+      id: codePath,
+      path: codePath,
+      summary: record.summary,
+      search_terms: record.search_terms.join(" "),
+    };
+    if (this.mini.has(codePath)) this.mini.replace(doc);
+    else this.mini.add(doc);
+    this.records.set(codePath, record);
+  }
 }

@@ -1,41 +1,73 @@
 ---
 name: repomem-memory
-description: How to use the repomem MCP server to record and recall a repository's shared memory — decisions, conventions, limitations, and learnings. Use when you make a non-obvious choice worth remembering, when you need prior context before changing code, or when the user asks what the team already decided.
+description: Mandatory protocol for the repository's shared memory (decisions, conventions, limitations, learnings, context). Use at the START of every task that will modify files, however familiar the code feels, and again before finishing. Also use when the user asks "why is it this way?" or what the team already decided.
 ---
 
 # repomem — the repository's shared memory
 
-repomem turns a `memory/` folder into searchable, git-versioned context served
+repomem turns `.repomem/memory/` into searchable, git-versioned context served
 over MCP. Entries are markdown files with structured frontmatter, grouped by
-type: `decisions/`, `conventions/`, `limitations/`, `learnings/`.
+type: `decisions/`, `conventions/`, `limitations/`, `learnings/`, `contexts/`.
 
-## When to use it
+Project docs tell you what the project is meant to be; memory tells you what the
+team decided and what bit them. Having read the docs is NOT a reason to skip
+this protocol.
 
-- **Before changing unfamiliar code**: search memory for related decisions and
-  limitations so you don't contradict an earlier choice.
-- **After making a non-obvious decision**: propose a new entry so the rationale
-  survives beyond the current conversation.
-- **When the user asks "why is it this way?"**: look it up instead of guessing.
+## Protocol
+
+**Before editing** (any task that changes files, however familiar the code feels):
+
+1. Call `memory_for_path` once for each file you are about to modify (or its
+   directory's main file). It matches entries by their `related_paths` globs.
+2. Call `search_memory` with the one to three main concepts of the task. One
+   search per concept, not one search for the whole task.
+3. Call `get_memory` for anything relevant. If an entry contradicts your plan,
+   surface it to the user before coding; do not silently override it.
+
+An empty result is a valid answer: say so in one line and move on. Do not treat
+it as "memory does not apply to this repo"; the repo may simply be young.
+
+**While working**: when you make a non-obvious choice (you picked A over B for a
+reason a teammate could not guess), note it for the end-of-task distill.
+
+**After finishing**: follow `repomem-distill` (propose entries, then validate).
 
 ## The propose-then-review workflow
 
 AI tools **propose** entries as drafts (`status: draft`). A human reviews and
 **accepts** them in the same pull request as the related change. Never mark an
-entry `accepted` yourself — leave it as a draft for review.
+entry `accepted` yourself.
 
 ## Tools
 
-- `search_memory` — full-text search across all entries. Start here.
-- `get_memory` — fetch a specific entry by slug.
-- `memory_for_path` — find entries whose `related_paths` match a file you are
-  about to touch.
-- Write tools propose new draft entries; prefer small, specific entries with a
-  clear title and `related_paths`.
+- `search_memory(query, type?, tags?)` — full-text search. Deprecated entries
+  are excluded by default.
+- `get_memory(id)` — full entry by slug (the `id` returned by search).
+- `memory_for_path(path)` — entries whose `related_paths` match a
+  repository-relative file path; accepted entries rank above drafts.
+- `propose_memory(type, title, body, tags?, related_paths?, supersedes?)` —
+  creates a DRAFT. Rejects a title whose id already exists for that type and
+  never overwrites. There is no `scope` parameter: express module scope with
+  `related_paths` and `tags`.
+- `deprecate_memory(id, reason, superseded_by?)` — mark an entry obsolete. Use
+  it (or `supersedes` on the replacement) when your work makes an earlier entry
+  false; do not leave contradicting entries live.
 
-## Guidelines
+## Writing good entries
 
-- Keep entries focused: one decision/convention/limitation/learning per file.
-- Always set meaningful `related_paths` so `memory_for_path` can surface the
-  entry later.
-- Run `npx --package @repomem/memory repomem-memory validate` before committing — it checks frontmatter, supersedes
-  references, and scans for secrets.
+- One decision, convention, limitation, learning or context per entry.
+- The title states the conclusion ("X is recorded at write time, not
+  reconstructed"), not the topic ("About X").
+- Always set `related_paths` with globs that a future `memory_for_path` call
+  would actually hit: include the main source file AND the test or doc a
+  maintainer would be editing when they need this entry.
+- Body: what, why (the rejected alternative and why), and what to do when you
+  touch it. Write for someone who was not in this session.
+- Before proposing, `search_memory` for the same topic; extend or supersede an
+  existing entry instead of adding a near-duplicate.
+
+## Before committing
+
+Run `npx --package @repomem/memory repomem-memory validate`. It checks
+frontmatter and `supersedes` references, and scans for secrets. Tell the user if
+you could not run it.

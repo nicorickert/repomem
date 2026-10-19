@@ -113,13 +113,17 @@ side panel.
 
 ## Dependency graph & web viewer
 
-The map builds an in-memory **file→file dependency graph** at startup by
+The map builds an in-memory **file→file dependency graph** by
 scanning every supported source file and parsing its imports. TypeScript and
 JavaScript (`.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`) are parsed with the
 TypeScript AST; Python (`.py`, `.pyi`) is parsed with a built-in, dependency-free
-scanner. The graph is never committed — like the search index, it is recomputed
-from the current code each time, so it is always fresh (the right basis for
-blast-radius).
+scanner. The graph is never committed. It is built in the background right after
+the server starts, then kept current **while the server runs**: when a tool asks
+for the graph it re-checks the repository (at most once per second) and updates
+it incrementally — one `stat` per source file, and only files whose mtime or
+size changed are re-read and re-parsed. Files created, edited or deleted during
+a session therefore show up in `get_dependents` without a restart. Nothing runs
+in the background: if no tool queries the graph, there is no work.
 
 - **Nodes**: every scannable TS/JS or Python file (independent of summaries).
 - **Edges**: resolved static imports.
@@ -156,4 +160,16 @@ One JSON per source file under `.repomem/map/summaries/`, mirroring the code
 path (e.g. `src/db/client.ts` → `.repomem/map/summaries/src/db/client.ts.json`).
 Each record has `hash`, `summary`, `search_terms`, `model`, `generated_at`.
 These files are marked `linguist-generated` in `.gitattributes`. The search
-index and staleness are computed in memory at startup and never committed.
+index and staleness are computed in memory at startup and never committed;
+`save_summary` also updates the in-memory index, so a summary you save is
+searchable in the same session.
+
+## Getting agents to actually use it
+
+Like `repomem-memory`, the map reinforces its protocol through MCP so it also
+works with a generic agent: the server sends `instructions` on `initialize`
+(check `get_dependents` before changing a shared symbol, `find_code` before
+editing unfamiliar code, refresh summaries when done) and every tool's
+description says when to call it. The `repomem-map-structure` skill carries the
+longer playbook. This is guidance, not enforcement, and it relies on the client
+surfacing server instructions and tool descriptions to the model.
