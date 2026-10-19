@@ -35,6 +35,6 @@ export function registerAllTools(
   index: MapIndex,
   graph?: DepGraph | Promise<DepGraph>,
 ): void {
-  registerGenerationTools(server, root);
+  registerGenerationTools(server, root, index);
   registerQueryTools(server, index, root, graph);
 }

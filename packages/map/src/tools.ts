@@ -43,8 +43,16 @@ export function errorResult(message: string): CallToolResult {
   return { content: [{ type: "text", text: message }], isError: true };
 }
 
-/** Register the in-agent generation tools against a repo `root`. */
-export function registerGenerationTools(server: McpServer, root: string): void {
+/**
+ * Register the in-agent generation tools against a repo `root`. When `index`
+ * is given, `save_summary` also upserts into it so the summary is searchable
+ * immediately, without restarting the server.
+ */
+export function registerGenerationTools(
+  server: McpServer,
+  root: string,
+  index?: MapIndex,
+): void {
   server.registerTool(
     "request_summaries",
     {
@@ -119,6 +127,7 @@ export function registerGenerationTools(server: McpServer, root: string): void {
           generated_at: new Date().toISOString(),
         };
         await writeSummary(root, p, record);
+        index?.upsert(p, record);
         return jsonResult({ status: "saved", path: p });
       } catch (err) {
         return errorResult(`save_summary failed: ${(err as Error).message}`);

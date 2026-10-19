@@ -71,4 +71,25 @@ describe("MapIndex", () => {
     expect(got!.summary).toContain("authentication");
     expect(index.get("src/missing.ts")).toBeNull();
   });
+
+  it("upsert adds a summary for a path that had none", async () => {
+    const index = await MapIndex.load(root);
+    expect(index.search("rabbitmq")).toHaveLength(0);
+    index.upsert("src/queue.ts", rec("q\n", "RabbitMQ message queue consumer.", ["amqp"]));
+    expect(index.search("rabbitmq").map((h) => h.path)).toEqual(["src/queue.ts"]);
+    expect(index.search("amqp").map((h) => h.path)).toEqual(["src/queue.ts"]);
+    expect(index.get("src/queue.ts")!.summary).toContain("RabbitMQ");
+  });
+
+  it("upsert replaces an existing summary, so the old terms stop matching", async () => {
+    const index = await MapIndex.load(root);
+    expect(index.search("postgres").map((h) => h.path)).toContain("src/db/client.ts");
+    index.upsert(
+      "src/db/client.ts",
+      rec("pg client\n", "SQLite embedded storage adapter.", ["sqlite"]),
+    );
+    expect(index.search("sqlite").map((h) => h.path)).toEqual(["src/db/client.ts"]);
+    expect(index.search("postgres")).toHaveLength(0);
+    expect(index.get("src/db/client.ts")!.summary).toContain("SQLite");
+  });
 });
