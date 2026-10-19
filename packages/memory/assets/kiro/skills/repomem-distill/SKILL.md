@@ -1,56 +1,64 @@
 ---
 name: repomem-distill
-description: How to distill a finished piece of work into durable repomem entries. Use as the FINAL STEP after executing a plan or completing a substantial task — review what the session produced and propose the decisions, learnings, limitations, and context worth keeping for next time.
+description: Final step after executing a plan or completing a substantial task. Review what the session produced and propose the decisions, learnings, limitations and context worth keeping, then validate them. Do not skip it because the task "felt small": decide explicitly whether anything durable came out of it.
 ---
 
 # repomem — distilling a session into memory
 
-When you finish executing a plan or a substantial task, the valuable knowledge
-lives only in this session: why you chose an approach, what surprised you, what
-constraints you hit. Once the session ends, it is gone unless you write it down.
-This skill is the final step of a plan: turn that knowledge into a small number
-of durable `repomem` entries.
+When you finish a plan or a substantial task, the valuable knowledge lives only
+in this session: why you chose an approach, what surprised you, what
+constraints you hit. Once the session ends it is gone unless you write it down.
 
-This is NOT about saving the plan. Do not persist the step-by-step plan, task
-lists, progress logs, or any other ephemeral session state — that noise does not
-belong in memory and the agent's own session already holds it. Distill only
+This is NOT about saving the plan. Do not persist step-by-step plans, task
+lists, progress logs or any other ephemeral session state. Distill only
 knowledge that will still matter weeks from now.
 
-## When to run it
+## Checklist (run in this order)
 
-- As the explicit final step after completing a plan or a non-trivial task.
-- When the user asks you to "record" or "distill" what was done.
+1. **Recall what already exists.** Call `search_memory` for each topic you are
+   about to write, and `memory_for_path` on the main files you changed. You are
+   looking for duplicates to extend and entries your work made false.
+2. **Decide what is durable.** For each candidate ask: would a teammate who was
+   not here make a worse decision without it?
+   - **decision** — a non-obvious choice and the reasoning, including the
+     alternative you rejected.
+   - **learning** — something that surprised you or cost time.
+   - **limitation** — a constraint or gotcha, including things you could NOT
+     verify (for example "only tested on SQLite").
+   - **context** — newly worth-writing-down understanding of what a thing is
+     and how it fits.
+   - **convention** — a rule future changes must follow (for example "every use
+     case that mutates X must call Y"), ideally with the test that enforces it.
 
-## What to distill
+   If nothing qualifies, propose nothing. A clean "no entries needed" is a
+   valid outcome; do not invent memory.
+3. **Propose.** One `propose_memory` call per item, with a conclusion-style
+   `title`, the right `type`, `tags`, and `related_paths` globs that a later
+   `memory_for_path` would hit (the main source file AND the test or doc a
+   maintainer would be editing). There is no `scope` parameter: module scope is
+   expressed through `related_paths` and `tags`.
+4. **Supersede, don't contradict.** If your work replaces an earlier decision,
+   pass `supersedes` on the new entry. Call `deprecate_memory` when no
+   replacement is needed.
+5. **Refresh the map.** If the `repomem-map-structure` skill is available,
+   follow "Keeping summaries fresh" there for the files you created or changed.
+6. **Validate.** Run `npx --package @repomem/memory repomem-memory validate` and
+   fix what it reports. If you cannot run it, say so explicitly.
+7. **Report.** In the final message list the entries you proposed (ids), say
+   they are drafts for human review, and mention validation status. Never mark
+   an entry `accepted` yourself.
 
-Review the session and identify, if any:
+## Tools used
 
-- **decisions** — non-obvious choices and the reasoning behind them.
-- **learnings** — things that surprised you or cost time, worth remembering.
-- **limitations** — new constraints or gotchas you discovered.
-- **context** — project or module-level understanding that changed or is newly
-  worth writing down (what a thing is, why it exists, how it fits together).
-
-If nothing durable came out of the work, propose nothing. A clean "no entries
-needed" is a valid outcome — do not invent memory.
-
-## How to do it
-
-1. Reflect on what the session actually accomplished and changed.
-2. For each durable item, call `propose_memory` once, with:
-   - a clear, specific `title`,
-   - the right `type` (decision / convention / limitation / learning / context),
-   - meaningful `related_paths` so `memory_for_path` can surface it later,
-   - a `scope`: `project` for repo-wide knowledge, or a module name
-     (e.g. `db`, `auth`, `frontend`) for module-specific knowledge.
-3. Keep each entry focused: one decision/learning/limitation/context per file.
-4. **Never** mark an entry `accepted` yourself. Every entry is a `draft` for a
-   human to review and accept in the same pull request as the code.
-5. Remind the user to run `npx --package @repomem/memory repomem-memory validate` before committing.
+- `search_memory(query, type?, tags?)`, `memory_for_path(path)` — recall.
+- `propose_memory(type, title, body, tags?, related_paths?, supersedes?)` —
+  always creates a draft.
+- `deprecate_memory(id, reason, superseded_by?)` — retire an entry without a
+  replacement.
 
 ## Guidelines
 
 - Prefer a few high-signal entries over many shallow ones.
-- Write for a teammate (human or AI) who was not in this session.
-- Reuse existing entries by proposing a `supersedes` reference when a decision
-  replaces an earlier one, rather than silently contradicting it.
+- Write for someone who was not in this session; no "as discussed above".
+- Record unverified assumptions as limitations rather than leaving them only in
+  the chat summary.
