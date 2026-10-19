@@ -3,7 +3,7 @@ type: decision
 title: >-
   The dependency graph is refreshed lazily and incrementally per query, not
   rebuilt or watched
-status: draft
+status: accepted
 date: '2026-10-19'
 scope: project
 tags:
