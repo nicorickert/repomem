@@ -9,11 +9,12 @@
  *   repomem setup --agent kiro --servers memory    non-interactive
  *   repomem setup --agent kiro --servers all       non-interactive, all servers
  *   repomem [--help]                               usage
+ *   repomem --version                              installed versions + update check
  */
 
 import { SERVER_IDS } from "./specs.js";
 
-export type Command = "setup" | "help";
+export type Command = "setup" | "help" | "version";
 
 /** The result of parsing argv. A `help` command short-circuits everything. */
 export interface ParsedCli {
@@ -86,6 +87,10 @@ export function parseCli(argv: string[]): ParsedCli {
 
   if (!first || first === "--help" || first === "-h" || first === "help") {
     return { command: "help", force: false, skipInit: false, nonInteractive: false };
+  }
+
+  if (first === "--version" || first === "-v") {
+    return { command: "version", force: false, skipInit: false, nonInteractive: false };
   }
 
   if (first !== "setup") {
