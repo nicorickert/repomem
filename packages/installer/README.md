@@ -40,6 +40,28 @@ npx @repomem/cli setup --agent kiro --servers memory,map # explicit list
 When both `--agent` and `--servers` are provided, the installer runs
 non-interactively. Otherwise it opens an interactive menu.
 
+### Versions and updates
+
+```bash
+npx @repomem/cli --version
+```
+
+prints the installed versions of `@repomem/cli`, `memory`, `map` and `core`,
+and marks any that have a newer release on npm, with the command to run the
+latest (`npx @repomem/cli@latest setup`). `npx` caches what it downloaded, so
+an old copy can keep running until you ask for `@latest`.
+
+The interactive menu does the same check once and prints a one-line notice
+before prompting. Details:
+
+- The check only sends package names to the public npm registry, has a 2 s
+  timeout, and fails silently when offline.
+- It never runs in non-interactive mode (`--agent` + `--servers`), so CI and
+  scripts make no network call.
+- Set `REPOMEM_NO_UPDATE_CHECK=1` to disable every registry lookup.
+- It does not update anything by itself and does not change the MCP config
+  written by `setup`.
+
 ## What it does
 
 For each selected server, the installer runs that package's own `setup`,

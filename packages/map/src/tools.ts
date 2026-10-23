@@ -90,9 +90,9 @@ export function registerGenerationTools(
     async ({ limit }): Promise<CallToolResult> => {
       try {
         const cap = limit ?? DEFAULT_CAP;
-        const all = await pending(root);
+        const found = await pending(root, { limit: cap });
         const prompt = await loadPrompt();
-        return jsonResult({ pending: all.slice(0, cap), prompt, cap });
+        return jsonResult({ pending: found, prompt, cap });
       } catch (err) {
         return errorResult(`request_summaries failed: ${(err as Error).message}`);
       }

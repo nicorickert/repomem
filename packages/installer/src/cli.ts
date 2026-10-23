@@ -4,6 +4,7 @@
  *
  *   repomem setup                                  interactive setup
  *   repomem setup --agent kiro --servers all       non-interactive
+ *   repomem --version                              installed versions + update check
  *   repomem --help                                 usage
  *
  * This file owns the concrete interactive UI (@clack/prompts). All parsing and
@@ -22,6 +23,7 @@ import {
   cancel,
 } from "@clack/prompts";
 import { runInstaller, type Prompter, type Selection } from "./run.js";
+import { NO_UPDATE_CHECK_ENV, fetchLatestVersion, installedVersions } from "./version.js";
 
 function out(message: string): void {
   process.stdout.write(message + "\n");
@@ -65,7 +67,17 @@ const clackPrompter: Prompter = async ({ agents, servers }) => {
 };
 
 export async function run(argv: string[] = process.argv.slice(2)): Promise<number> {
-  return runInstaller(argv, { io: { out, err }, prompt: clackPrompter });
+  // Any non-empty value other than "0"/"false" opts out of registry lookups.
+  const flag = process.env[NO_UPDATE_CHECK_ENV];
+  const optedOut = flag !== undefined && flag !== "" && flag !== "0" && flag.toLowerCase() !== "false";
+  return runInstaller(argv, {
+    io: { out, err },
+    prompt: clackPrompter,
+    versions: {
+      installed: installedVersions(),
+      latest: optedOut ? undefined : (name) => fetchLatestVersion(name),
+    },
+  });
 }
 
 // Only auto-run when invoked directly (not when imported by tests).
