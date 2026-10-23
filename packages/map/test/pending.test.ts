@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { promises as fs } from "node:fs";
+import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { pending } from "../src/pending.js";
@@ -55,5 +56,32 @@ describe("pending", () => {
 
     const result = await pending(root);
     expect(result).toEqual([]);
+  });
+
+  it("stops after `limit` files instead of walking the whole repo", async () => {
+    for (let i = 0; i < 10; i++) {
+      await fs.writeFile(path.join(root, "src", `f${i}.ts`), `export const n = ${i};\n`);
+    }
+    const result = await pending(root, { limit: 3 });
+    expect(result).toHaveLength(3);
+    // Without a limit the full list is still returned.
+    expect(await pending(root)).toHaveLength(10);
+  });
+
+  it("skips files larger than the size cap", async () => {
+    await fs.writeFile(path.join(root, "src", "small.ts"), "export {};\n");
+    await fs.writeFile(path.join(root, "src", "huge.ts"), "x".repeat(2048));
+    const result = await pending(root, { maxBytes: 1024 });
+    expect(result.map((p) => p.path)).toEqual(["src/small.ts"]);
+  });
+
+  it("does not throw on a listed path that is missing or not a regular file", async () => {
+    await fs.writeFile(path.join(root, "src", "ok.ts"), "export {};\n");
+    await fs.writeFile(path.join(root, "gone.ts"), "export {};\n");
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["add", "gone.ts"], { cwd: root });
+    await fs.rm(path.join(root, "gone.ts")); // tracked but deleted
+    const result = await pending(root);
+    expect(result.map((p) => p.path)).toEqual(["src/ok.ts"]);
   });
 });

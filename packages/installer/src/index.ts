@@ -10,7 +10,16 @@ export {
   type Prompter,
   type Selection,
   type RunOptions,
+  type VersionSupport,
 } from "./run.js";
+export {
+  installedVersions,
+  fetchLatestVersion,
+  checkForUpdates,
+  compareVersions,
+  type PackageVersion,
+  type UpdateStatus,
+} from "./version.js";
 export {
   SERVER_CHOICES,
   SERVER_IDS,

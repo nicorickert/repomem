@@ -11,6 +11,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { readFileSync } from "node:fs";
 import * as z from "zod";
 import { entryTypeSchema, type MemoryEntry } from "./schema.js";
 import type { MemoryIndex } from "./search.js";
@@ -44,9 +45,25 @@ function summarize(entry: MemoryEntry) {
   };
 }
 
+/**
+ * Version of this package, read from its `package.json` so the version a client
+ * sees on `initialize` is the one actually running. `src/` and `dist/` both sit
+ * one level below the package root. Falls back to "unknown" rather than failing
+ * the server if the file cannot be read.
+ */
+function packageVersion(): string {
+  try {
+    const raw = readFileSync(new URL("../package.json", import.meta.url), "utf8");
+    const { version } = JSON.parse(raw) as { version?: unknown };
+    return typeof version === "string" ? version : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 export const SERVER_INFO = {
   name: "repomem-memory",
-  version: "0.1.0",
+  version: packageVersion(),
 } as const;
 
 /**
